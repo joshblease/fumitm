@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'fuwarp_windows.py'
+      - 'fumitm_windows.py'
       - '.github/workflows/windows-test.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'fuwarp_windows.py'
+      - 'fumitm_windows.py'
       - '.github/workflows/windows-test.yml'
   workflow_dispatch:  # Allow manual triggering if needed
 
@@ -50,15 +50,15 @@ jobs:
         $env:PYTHONIOENCODING = "utf-8"
 
         # Test direct script execution (not as a module import)
-        python fuwarp_windows.py --help
-        python fuwarp_windows.py --list-tools
+        python fumitm_windows.py --help
+        python fumitm_windows.py --list-tools
 
     - name: Test in status mode (read-only)
       shell: pwsh
       run: |
         # Set UTF-8 encoding for Python to handle Unicode characters
         $env:PYTHONIOENCODING = "utf-8"
-        python fuwarp_windows.py
+        python fumitm_windows.py
 
     - name: Test path construction
       shell: pwsh
@@ -70,10 +70,10 @@ jobs:
         import os
         import sys
         # Import the module by executing the file directly to get the class
-        exec(open('fuwarp_windows.py').read(), globals())  # This loads FuwarpWindows class
+        exec(open('fumitm_windows.py').read(), globals())  # This loads FumitmWindows class
 
         # Test that paths are properly constructed for Windows
-        fw = FuwarpWindows(mode='status', debug=True)
+        fw = FumitmWindows(mode='status', debug=True)
 
         # Test get_tool_bundle_path
         path = fw.get_tool_bundle_path('test')
@@ -105,9 +105,9 @@ jobs:
         python -c @"
         import sys
         # Import the module by executing the file directly
-        exec(open('fuwarp_windows.py').read(), globals())
+        exec(open('fumitm_windows.py').read(), globals())
 
-        fw = FuwarpWindows(mode='status', debug=True)
+        fw = FumitmWindows(mode='status', debug=True)
         result = fw.download_certificate()
         assert result == True, 'Certificate download should succeed with mock'
         print('Certificate download test passed')
@@ -125,9 +125,9 @@ jobs:
         import sys
         import tempfile
         # Import the module by executing the file directly
-        exec(open('fuwarp_windows.py').read(), globals())
+        exec(open('fumitm_windows.py').read(), globals())
 
-        fw = FuwarpWindows(mode='status', debug=True)
+        fw = FumitmWindows(mode='status', debug=True)
 
         # Create a temp file to test with
         with tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False) as tf:
@@ -152,9 +152,9 @@ jobs:
         import os
         import re
         import tempfile
-        exec(open('fuwarp_windows.py').read(), globals())
+        exec(open('fumitm_windows.py').read(), globals())
 
-        fw = FuwarpWindows(mode='install', debug=True)
+        fw = FumitmWindows(mode='install', debug=True)
 
         # Create certificate content (with trailing newline)
         cert_content = '-----BEGIN CERTIFICATE-----\nMIIEjTCCA3WgAwIBAgISA2Q1\n-----END CERTIFICATE-----\n'
@@ -207,9 +207,9 @@ jobs:
         import os
         import re
         import tempfile
-        exec(open('fuwarp_windows.py').read(), globals())
+        exec(open('fumitm_windows.py').read(), globals())
 
-        fw = FuwarpWindows(mode='install', debug=True)
+        fw = FumitmWindows(mode='install', debug=True)
 
         cert_content = '-----BEGIN CERTIFICATE-----\nMIIEjTCCA3WgAwIBAgISA2Q1\n-----END CERTIFICATE-----\n'
 
@@ -256,9 +256,9 @@ jobs:
         python -c @"
         import os
         import tempfile
-        exec(open('fuwarp_windows.py').read(), globals())
+        exec(open('fumitm_windows.py').read(), globals())
 
-        fw = FuwarpWindows(mode='install', debug=True)
+        fw = FumitmWindows(mode='install', debug=True)
 
         cert_content = '-----BEGIN CERTIFICATE-----\nMIIEjTCCA3WgAwIBAgISA2Q1\n-----END CERTIFICATE-----\n'
 

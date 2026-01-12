@@ -1,7 +1,7 @@
 """
-Integration tests for fuwarp.py
+Integration tests for fumitm.py
 
-These tests verify the core workflows and functionality of the fuwarp script
+These tests verify the core workflows and functionality of the fumitm script
 by mocking external dependencies and testing realistic scenarios.
 """
 import sys
@@ -11,16 +11,16 @@ import pytest
 
 # Import test utilities
 from helpers import (
-    MockBuilder, mock_fuwarp_environment, assert_subprocess_called_with,
-    assert_file_written, FuwarpTestCase
+    MockBuilder, mock_fumitm_environment, assert_subprocess_called_with,
+    assert_file_written, FumitmTestCase
 )
 import mock_data
 
-# Import the fuwarp module
-import fuwarp
+# Import the fumitm module
+import fumitm
 
 
-class TestCertificateManagement(FuwarpTestCase):
+class TestCertificateManagement(FumitmTestCase):
     """Tests for certificate download and validation."""
     
     def test_certificate_download_success(self):
@@ -30,8 +30,8 @@ class TestCertificateManagement(FuwarpTestCase):
             .with_tools('openssl')
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='install')
             result = instance.download_certificate()
             
             assert result is True
@@ -41,8 +41,8 @@ class TestCertificateManagement(FuwarpTestCase):
         """Test certificate download when WARP is not installed."""
         mock_config = MockBuilder().with_warp_not_installed().build()
         
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='install')
             result = instance.download_certificate()
             
             assert result is False
@@ -55,8 +55,8 @@ class TestCertificateManagement(FuwarpTestCase):
             .with_subprocess_response(returncode=0)  # openssl verify success
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance()
             # Trigger certificate validation through status check
             instance.check_all_status()
             
@@ -72,15 +72,15 @@ class TestCertificateManagement(FuwarpTestCase):
             .with_subprocess_response(returncode=0)  # openssl check shows valid
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance()
             instance.check_all_status()
             
             # Should check existing certificate validity
             assert mocks['exists'].called
 
 
-class TestToolSetup(FuwarpTestCase):
+class TestToolSetup(FumitmTestCase):
     """Tests for individual tool certificate setup."""
     
     @pytest.mark.parametrize("tool,check_commands", [
@@ -99,8 +99,8 @@ class TestToolSetup(FuwarpTestCase):
         for _ in check_commands:
             mock_config['subprocess_side_effect'].append(MagicMock(returncode=0, stdout=""))
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance()
             setup_method = getattr(instance, f"setup_{tool}_cert")
             setup_method()
             
@@ -117,11 +117,11 @@ class TestToolSetup(FuwarpTestCase):
             .with_subprocess_response(returncode=0)  # npm config set
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
+        with mock_fumitm_environment(mock_config) as mocks:
             # Mock input to auto-answer 'Y' and Path.touch
             with patch('builtins.input', return_value='Y'), \
                  patch('pathlib.Path.touch'):
-                instance = self.create_fuwarp_instance(mode='install')
+                instance = self.create_fumitm_instance(mode='install')
                 instance.setup_node_cert()
             
             # Should check npm config
@@ -136,8 +136,8 @@ class TestToolSetup(FuwarpTestCase):
             .with_subprocess_response(returncode=1)  # pip not found
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='status')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='status')
             instance.setup_python_cert()
             
             # Python should have been checked
@@ -145,35 +145,35 @@ class TestToolSetup(FuwarpTestCase):
             assert any(call('python3') in mocks['which'].call_args_list for call in [call])
 
 
-class TestCLIAndWorkflow(FuwarpTestCase):
+class TestCLIAndWorkflow(FumitmTestCase):
     """Tests for CLI argument parsing and complete workflows."""
     
-    @patch('fuwarp.sys.argv', ['fuwarp.py', '--fix'])
+    @patch('fumitm.sys.argv', ['fumitm.py', '--fix'])
     def test_cli_fix_mode(self):
         """Test --fix argument sets install mode."""
-        with patch('fuwarp.FuwarpPython') as mock_class:
+        with patch('fumitm.FumitmPython') as mock_class:
             mock_instance = MagicMock()
             mock_instance.main.return_value = 0
             mock_class.return_value = mock_instance
             
-            with patch('fuwarp.sys.exit'):
-                fuwarp.main()
+            with patch('fumitm.sys.exit'):
+                fumitm.main()
             
             mock_class.assert_called_with(
                 mode='install', debug=False, selected_tools=[],
                 cert_file=None, manual_cert=False, skip_verify=False
             )
     
-    @patch('fuwarp.sys.argv', ['fuwarp.py', '--tools', 'node,python'])
+    @patch('fumitm.sys.argv', ['fumitm.py', '--tools', 'node,python'])
     def test_cli_tool_selection(self):
         """Test --tools argument parsing."""
-        with patch('fuwarp.FuwarpPython') as mock_class:
+        with patch('fumitm.FumitmPython') as mock_class:
             mock_instance = MagicMock()
             mock_instance.main.return_value = 0
             mock_class.return_value = mock_instance
             
-            with patch('fuwarp.sys.exit'):
-                fuwarp.main()
+            with patch('fumitm.sys.exit'):
+                fumitm.main()
             
             mock_class.assert_called_with(
                 mode='status',
@@ -196,8 +196,8 @@ class TestCLIAndWorkflow(FuwarpTestCase):
             .with_subprocess_response(returncode=0)  # openssl validity check
             .build())
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance()
             # Run the complete status check
             instance.check_all_status()
             
@@ -209,12 +209,12 @@ class TestCLIAndWorkflow(FuwarpTestCase):
             assert any(call('keytool') in mocks['which'].call_args_list for call in [call])
 
 
-class TestToolSelection(FuwarpTestCase):
+class TestToolSelection(FumitmTestCase):
     """Tests for tool selection and filtering logic."""
     
     def test_tool_selection_by_key(self):
         """Test selecting tools by their key names."""
-        instance = self.create_fuwarp_instance(selected_tools=['node', 'python'])
+        instance = self.create_fumitm_instance(selected_tools=['node', 'python'])
         
         assert instance.should_process_tool('node') is True
         assert instance.should_process_tool('python') is True
@@ -222,7 +222,7 @@ class TestToolSelection(FuwarpTestCase):
     
     def test_tool_selection_by_tag(self):
         """Test selecting tools by their tags."""
-        instance = self.create_fuwarp_instance(selected_tools=['nodejs', 'pip'])
+        instance = self.create_fumitm_instance(selected_tools=['nodejs', 'pip'])
         
         # Should match by tag
         assert instance.should_process_tool('node') is True  # 'nodejs' tag
@@ -231,7 +231,7 @@ class TestToolSelection(FuwarpTestCase):
     
     def test_tool_selection_validation(self):
         """Test validation of selected tools."""
-        instance = self.create_fuwarp_instance(
+        instance = self.create_fumitm_instance(
             selected_tools=['node', 'invalid-tool', 'python']
         )
         
@@ -240,7 +240,7 @@ class TestToolSelection(FuwarpTestCase):
         assert 'node' not in invalid_tools
 
 
-class TestErrorScenarios(FuwarpTestCase):
+class TestErrorScenarios(FumitmTestCase):
     """Tests for error handling and edge cases."""
     
     def test_certificate_download_network_error(self):
@@ -253,8 +253,8 @@ class TestErrorScenarios(FuwarpTestCase):
             )
             .build())
         
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='install')
             result = instance.download_certificate()
             
             assert result is False
@@ -266,11 +266,11 @@ class TestErrorScenarios(FuwarpTestCase):
             .with_tools('openssl')
             .build())
         
-        with mock_fuwarp_environment(mock_config):
-            with patch('fuwarp.shutil.copy') as mock_copy:
+        with mock_fumitm_environment(mock_config):
+            with patch('fumitm.shutil.copy') as mock_copy:
                 mock_copy.side_effect = PermissionError(mock_data.PERMISSION_DENIED_ERROR)
                 
-                instance = self.create_fuwarp_instance(mode='install')
+                instance = self.create_fumitm_instance(mode='install')
                 # The download_certificate method doesn't catch PermissionError
                 # so we expect it to raise
                 with pytest.raises(PermissionError):
@@ -290,8 +290,8 @@ class TestErrorScenarios(FuwarpTestCase):
             )
             .build())
         
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='install')
             result = instance.download_certificate()
             
             assert result is False
@@ -303,8 +303,8 @@ class TestErrorScenarios(FuwarpTestCase):
             .with_certificate()
             .build())  # No tools configured except warp
         
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='status')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='status')
             # Run status check - should handle missing tools gracefully
             instance.check_all_status()
             
@@ -314,17 +314,17 @@ class TestErrorScenarios(FuwarpTestCase):
             assert True  # If we get here, no exceptions were raised
 
 
-class TestConnectionVerification(FuwarpTestCase):
+class TestConnectionVerification(FumitmTestCase):
     """Tests for network connection verification."""
     
-    @patch('fuwarp.urllib.request.urlopen')
+    @patch('fumitm.urllib.request.urlopen')
     def test_python_connection_verification_success(self, mock_urlopen):
         """Test successful Python HTTPS connection verification."""
         mock_response = MagicMock()
         mock_response.code = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
         
-        instance = self.create_fuwarp_instance()
+        instance = self.create_fumitm_instance()
         result = instance.verify_connection('python')
         
         assert result == "WORKING"
@@ -340,8 +340,8 @@ class TestConnectionVerification(FuwarpTestCase):
             )
             .build())
         
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance()
             result = instance.verify_connection('node')
             
             assert result == "WORKING"
@@ -356,14 +356,14 @@ class TestConnectionVerification(FuwarpTestCase):
             )
             .build())
         
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance()
             result = instance.verify_connection('wget')
             
             assert result == "FAILED"
 
 
-class TestPlatformSpecific(FuwarpTestCase):
+class TestPlatformSpecific(FumitmTestCase):
     """Tests for platform-specific behavior."""
 
     @pytest.mark.parametrize("platform,expected_path", [
@@ -373,14 +373,14 @@ class TestPlatformSpecific(FuwarpTestCase):
     def test_platform_specific_paths(self, platform, expected_path):
         """Test that platform-specific paths are used correctly."""
         with patch('platform.system', return_value=platform):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
             # Check that instance is aware of platform
             # This would need actual implementation testing
             assert True  # Placeholder for actual platform-specific tests
 
 
-class TestStatusFunctionContracts(FuwarpTestCase):
+class TestStatusFunctionContracts(FumitmTestCase):
     """Contract tests for all check_*_status() functions.
 
     These tests verify that all status check functions return a boolean value,
@@ -411,7 +411,7 @@ class TestStatusFunctionContracts(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         status_methods = self.get_all_status_methods(instance)
 
@@ -454,7 +454,7 @@ class TestStatusFunctionContracts(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         status_methods = self.get_all_status_methods(instance)
 
@@ -481,7 +481,7 @@ class TestStatusFunctionContracts(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         # Mock jenv having Java installations
         fake_java_homes = ['/fake/java/home/17', '/fake/java/home/11']
@@ -502,7 +502,7 @@ class TestStatusFunctionContracts(FuwarpTestCase):
             assert isinstance(result, bool), f"check_jenv_status returned {type(result).__name__}, not bool"
 
 
-class TestBundleCreation(FuwarpTestCase):
+class TestBundleCreation(FumitmTestCase):
     """Tests for system CA bundle creation helper."""
 
     def test_creates_bundle_from_macos_system_certs(self, tmp_path):
@@ -514,7 +514,7 @@ class TestBundleCreation(FuwarpTestCase):
         target_bundle = tmp_path / "bundle.pem"
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
             # Mock os.path.exists to simulate macOS system cert location
             with patch('os.path.exists') as mock_exists:
@@ -532,7 +532,7 @@ class TestBundleCreation(FuwarpTestCase):
         target_bundle = tmp_path / "bundle.pem"
 
         with patch('platform.system', return_value='Linux'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
             # Mock os.path.exists: macOS path doesn't exist, Linux path does
             with patch('os.path.exists') as mock_exists:
@@ -550,7 +550,7 @@ class TestBundleCreation(FuwarpTestCase):
         target_bundle = tmp_path / "bundle.pem"
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
             # Mock os.path.exists: neither system cert location exists
             with patch('os.path.exists', return_value=False):
@@ -566,7 +566,7 @@ class TestBundleCreation(FuwarpTestCase):
         target_bundle = tmp_path / "bundle.pem"
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
             # Test True case (system certs exist)
             with patch('os.path.exists', side_effect=lambda p: p == "/etc/ssl/cert.pem"):
@@ -580,7 +580,7 @@ class TestBundleCreation(FuwarpTestCase):
                 assert result is False
 
 
-class TestCertificateAppending(FuwarpTestCase):
+class TestCertificateAppending(FumitmTestCase):
     """Tests for certificate appending to ensure proper PEM formatting (issue #13)."""
 
     def test_append_to_bundle_without_trailing_newline(self, tmp_path):
@@ -600,7 +600,7 @@ class TestCertificateAppending(FuwarpTestCase):
 
         # Create instance and call safe_append_certificate
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
             result = instance.safe_append_certificate(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -628,7 +628,7 @@ class TestCertificateAppending(FuwarpTestCase):
 
         # Create instance and call safe_append_certificate
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
             result = instance.safe_append_certificate(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -651,7 +651,7 @@ class TestCertificateAppending(FuwarpTestCase):
 
         # Create instance and call safe_append_certificate
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
             result = instance.safe_append_certificate(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -677,7 +677,7 @@ class TestCertificateAppending(FuwarpTestCase):
         # Create instance and mock certificate_exists_in_file to return True
         # (since mock certificates don't work with openssl fingerprint check)
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
             with patch.object(instance, 'certificate_exists_in_file', return_value=True):
                 result = instance.safe_append_certificate(str(cert_file), str(bundle_file))
 
@@ -698,7 +698,7 @@ class TestCertificateAppending(FuwarpTestCase):
 
         # Create instance and call safe_append_certificate
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
             result = instance.safe_append_certificate(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -715,8 +715,8 @@ class TestCertificateAppending(FuwarpTestCase):
 class TestCodeQuality:
     """Static analysis tests to catch unsafe patterns in the codebase."""
 
-    def test_no_unsafe_certificate_appends_in_fuwarp(self):
-        """Ensure fuwarp.py uses safe_append_certificate() for all certificate appends.
+    def test_no_unsafe_certificate_appends_in_fumitm(self):
+        """Ensure fumitm.py uses safe_append_certificate() for all certificate appends.
 
         Regression test for issue #21 - prevents adding new unsafe certificate
         appends that could produce malformed PEM files.
@@ -730,9 +730,9 @@ class TestCodeQuality:
 
         # Read the source file
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_path = os.path.join(os.path.dirname(test_dir), "fuwarp.py")
+        fumitm_path = os.path.join(os.path.dirname(test_dir), "fumitm.py")
 
-        with open(fuwarp_path, 'r') as f:
+        with open(fumitm_path, 'r') as f:
             source = f.read()
 
         # Pattern 1: Direct append mode opens for bundle/cert files
@@ -744,7 +744,7 @@ class TestCodeQuality:
 
         matches = unsafe_append_pattern.findall(source)
         assert not matches, (
-            f"Found unsafe certificate append patterns in fuwarp.py:\n"
+            f"Found unsafe certificate append patterns in fumitm.py:\n"
             f"{matches}\n\n"
             f"Use self.safe_append_certificate(cert_path, target_path) instead"
         )
@@ -757,24 +757,24 @@ class TestCodeQuality:
 
         matches = unsafe_write_pattern.findall(source)
         assert not matches, (
-            f"Found unsafe certificate write patterns in fuwarp.py:\n"
+            f"Found unsafe certificate write patterns in fumitm.py:\n"
             f"{matches}\n\n"
             f"Use self.safe_append_certificate(cert_path, target_path) instead"
         )
 
-    def test_no_unsafe_certificate_appends_in_fuwarp_windows(self):
-        """Ensure fuwarp_windows.py uses append_certificate_if_missing() for all appends.
+    def test_no_unsafe_certificate_appends_in_fumitm_windows(self):
+        """Ensure fumitm_windows.py uses append_certificate_if_missing() for all appends.
 
-        Same as test_no_unsafe_certificate_appends_in_fuwarp but for Windows port.
+        Same as test_no_unsafe_certificate_appends_in_fumitm but for Windows port.
         """
         import os
         import re
 
         # Read the source file
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_windows_path = os.path.join(os.path.dirname(test_dir), "fuwarp_windows.py")
+        fumitm_windows_path = os.path.join(os.path.dirname(test_dir), "fumitm_windows.py")
 
-        with open(fuwarp_windows_path, 'r') as f:
+        with open(fumitm_windows_path, 'r') as f:
             source = f.read()
 
         # Pattern 1: Direct append mode opens for bundle/cert files
@@ -800,13 +800,13 @@ class TestCodeQuality:
                     unsafe_lines.append(f"Line {i}: {line.strip()}")
 
         assert not unsafe_lines, (
-            f"Found unsafe certificate append patterns in fuwarp_windows.py:\n"
+            f"Found unsafe certificate append patterns in fumitm_windows.py:\n"
             + "\n".join(unsafe_lines) + "\n\n"
             f"Use self.append_certificate_if_missing(cert_path, target_path) instead"
         )
 
-    def test_no_unused_globals_in_fuwarp(self):
-        """Ensure no unused global variables exist in fuwarp.py.
+    def test_no_unused_globals_in_fumitm(self):
+        """Ensure no unused global variables exist in fumitm.py.
 
         Regression test to prevent unused globals like SHELL_MODIFIED and
         CERT_FINGERPRINT from being introduced (or reintroduced).
@@ -815,9 +815,9 @@ class TestCodeQuality:
         import re
 
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_path = os.path.join(os.path.dirname(test_dir), "fuwarp.py")
+        fumitm_path = os.path.join(os.path.dirname(test_dir), "fumitm.py")
 
-        with open(fuwarp_path, 'r') as f:
+        with open(fumitm_path, 'r') as f:
             source = f.read()
 
         # Find module-level UPPER_CASE variable assignments (globals)
@@ -842,22 +842,22 @@ class TestCodeQuality:
                 unused_globals.append(name)
 
         assert not unused_globals, (
-            f"Unused global variables found in fuwarp.py: {unused_globals}\n"
+            f"Unused global variables found in fumitm.py: {unused_globals}\n"
             "These variables are defined but never referenced elsewhere in the code."
         )
 
-    def test_no_unused_globals_in_fuwarp_windows(self):
-        """Ensure no unused global variables exist in fuwarp_windows.py.
+    def test_no_unused_globals_in_fumitm_windows(self):
+        """Ensure no unused global variables exist in fumitm_windows.py.
 
-        Same check as test_no_unused_globals_in_fuwarp but for Windows port.
+        Same check as test_no_unused_globals_in_fumitm but for Windows port.
         """
         import os
         import re
 
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_windows_path = os.path.join(os.path.dirname(test_dir), "fuwarp_windows.py")
+        fumitm_windows_path = os.path.join(os.path.dirname(test_dir), "fumitm_windows.py")
 
-        with open(fuwarp_windows_path, 'r') as f:
+        with open(fumitm_windows_path, 'r') as f:
             source = f.read()
 
         # Known unused globals pending Windows refactoring
@@ -886,11 +886,11 @@ class TestCodeQuality:
                 unused_globals.append(name)
 
         assert not unused_globals, (
-            f"Unused global variables found in fuwarp_windows.py: {unused_globals}\n"
+            f"Unused global variables found in fumitm_windows.py: {unused_globals}\n"
             "These variables are defined but never referenced elsewhere in the code."
         )
 
-    def test_consistent_setup_messaging_in_fuwarp(self):
+    def test_consistent_setup_messaging_in_fumitm(self):
         """Ensure setup functions use consistent messaging patterns.
 
         All setup functions should use "Configuring <tool> certificate..."
@@ -901,9 +901,9 @@ class TestCodeQuality:
         import re
 
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_path = os.path.join(os.path.dirname(test_dir), "fuwarp.py")
+        fumitm_path = os.path.join(os.path.dirname(test_dir), "fumitm.py")
 
-        with open(fuwarp_path, 'r') as f:
+        with open(fumitm_path, 'r') as f:
             source = f.read()
 
         # Find "Setting up" patterns which should be "Configuring"
@@ -911,13 +911,13 @@ class TestCodeQuality:
 
         matches = setting_up_pattern.findall(source)
         assert not matches, (
-            f"Found inconsistent messaging in fuwarp.py:\n"
+            f"Found inconsistent messaging in fumitm.py:\n"
             f"{matches}\n\n"
             f"Use 'Configuring <tool> certificate...' instead of 'Setting up <tool> certificate...'"
         )
 
-    def test_no_bare_except_clauses_in_fuwarp(self):
-        """Ensure no bare 'except:' clauses exist in fuwarp.py.
+    def test_no_bare_except_clauses_in_fumitm(self):
+        """Ensure no bare 'except:' clauses exist in fumitm.py.
 
         Bare except clauses catch all exceptions including SystemExit and
         KeyboardInterrupt, which is rarely what's intended. They should be
@@ -928,9 +928,9 @@ class TestCodeQuality:
         import re
 
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_path = os.path.join(os.path.dirname(test_dir), "fuwarp.py")
+        fumitm_path = os.path.join(os.path.dirname(test_dir), "fumitm.py")
 
-        with open(fuwarp_path, 'r') as f:
+        with open(fumitm_path, 'r') as f:
             lines = f.readlines()
 
         # Find bare except clauses (except: without an exception type)
@@ -941,12 +941,12 @@ class TestCodeQuality:
                 bare_excepts.append(f"Line {i}: {line.strip()}")
 
         assert not bare_excepts, (
-            f"Found bare 'except:' clauses in fuwarp.py:\n"
+            f"Found bare 'except:' clauses in fumitm.py:\n"
             + "\n".join(bare_excepts) + "\n\n"
             f"Replace with 'except Exception:' or a more specific exception type."
         )
 
-    def test_no_raw_cert_comparisons_in_fuwarp(self):
+    def test_no_raw_cert_comparisons_in_fumitm(self):
         """Ensure setup functions use certificate_exists_in_file() not raw string comparison.
 
         Regression test for issue #35 - Status checks use certificate_exists_in_file()
@@ -964,9 +964,9 @@ class TestCodeQuality:
         import re
 
         test_dir = os.path.dirname(os.path.abspath(__file__))
-        fuwarp_path = os.path.join(os.path.dirname(test_dir), "fuwarp.py")
+        fumitm_path = os.path.join(os.path.dirname(test_dir), "fumitm.py")
 
-        with open(fuwarp_path, 'r') as f:
+        with open(fumitm_path, 'r') as f:
             source = f.read()
 
         # Find raw certificate content comparisons in setup functions
@@ -986,7 +986,7 @@ class TestCodeQuality:
                     violations.append(f"Line {i}: {line.strip()} ({description})")
 
         assert not violations, (
-            f"Found raw certificate comparisons in fuwarp.py:\n"
+            f"Found raw certificate comparisons in fumitm.py:\n"
             + "\n".join(violations) + "\n\n"
             "Setup functions must use self.certificate_exists_in_file(CERT_PATH, target)\n"
             "instead of raw 'cert_content in file_content' comparisons.\n"
@@ -994,7 +994,7 @@ class TestCodeQuality:
         )
 
 
-class TestPerformance(FuwarpTestCase):
+class TestPerformance(FumitmTestCase):
     """Tests for performance and subprocess call limits.
 
     These tests ensure that certificate checking operations don't spawn
@@ -1017,7 +1017,7 @@ class TestPerformance(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE + mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         # Count subprocess calls
         with patch('subprocess.run') as mock_subprocess:
@@ -1044,7 +1044,7 @@ class TestPerformance(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('subprocess.run') as mock_subprocess:
             result = instance.certificate_likely_exists_in_file(
@@ -1074,7 +1074,7 @@ class TestPerformance(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE + mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
         with patch('subprocess.run') as mock_subprocess:
             # This should detect the certificate already exists and skip
@@ -1116,7 +1116,7 @@ class TestPerformance(FuwarpTestCase):
         bundle_file.write_text(bundle_content)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
         with patch('subprocess.run') as mock_subprocess:
             # Check if certificate exists in bundle
@@ -1138,10 +1138,10 @@ class TestPerformance(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='install')
+            instance = fumitm.FumitmPython(mode='install')
 
         # Mock the CERT_PATH to our test file
-        with patch.object(fuwarp, 'CERT_PATH', str(cert_file)):
+        with patch.object(fumitm, 'CERT_PATH', str(cert_file)):
             with patch('subprocess.run') as mock_subprocess:
                 mock_subprocess.return_value = MagicMock(
                     returncode=0,
@@ -1162,7 +1162,7 @@ class TestPerformance(FuwarpTestCase):
                 )
 
 
-class TestCertificateContentMatching(FuwarpTestCase):
+class TestCertificateContentMatching(FumitmTestCase):
     """Tests for pure Python certificate content matching.
 
     These tests verify that certificate duplicate detection works correctly
@@ -1175,7 +1175,7 @@ class TestCertificateContentMatching(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         # The function should be able to extract a unique portion
         # This tests the internal helper if it exists
@@ -1194,7 +1194,7 @@ class TestCertificateContentMatching(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE + "\n" + mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         result = instance.certificate_likely_exists_in_file(
             str(cert_file), str(bundle_file)
@@ -1212,7 +1212,7 @@ class TestCertificateContentMatching(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         result = instance.certificate_likely_exists_in_file(
             str(cert_file), str(bundle_file)
@@ -1231,7 +1231,7 @@ class TestCertificateContentMatching(FuwarpTestCase):
         bundle_file.write_text(mock_data.SAMPLE_CA_BUNDLE + "\n\n\n" + cert_with_spaces)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         result = instance.certificate_likely_exists_in_file(
             str(cert_file), str(bundle_file)
@@ -1241,13 +1241,13 @@ class TestCertificateContentMatching(FuwarpTestCase):
         assert result is True, "Failed to find certificate with whitespace variations"
 
 
-class TestUpdateCheck(FuwarpTestCase):
+class TestUpdateCheck(FumitmTestCase):
     """Tests for the update check functionality."""
 
     def test_check_for_updates_uses_unverified_ssl(self, tmp_path):
         """Verify update check uses unverified SSL context."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('urllib.request.urlopen') as mock_urlopen, \
              patch('builtins.open', mock_open(read_data=b'test content')):
@@ -1269,7 +1269,7 @@ class TestUpdateCheck(FuwarpTestCase):
     def test_check_for_updates_handles_network_error(self, tmp_path):
         """Verify update check handles network errors gracefully."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.side_effect = urllib.error.URLError("Network error")
@@ -1280,13 +1280,13 @@ class TestUpdateCheck(FuwarpTestCase):
             assert result is False
 
 
-class TestGcloudVerification(FuwarpTestCase):
+class TestGcloudVerification(FumitmTestCase):
     """Tests for gcloud verification functionality."""
 
     def test_verify_connection_gcloud_working(self, tmp_path):
         """Test gcloud verification when API call succeeds."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('subprocess.run') as mock_run, \
              patch.object(instance, 'command_exists', return_value=True), \
@@ -1306,7 +1306,7 @@ class TestGcloudVerification(FuwarpTestCase):
     def test_verify_connection_gcloud_ssl_error(self, tmp_path):
         """Test gcloud verification with SSL error."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('subprocess.run') as mock_run, \
              patch.object(instance, 'command_exists', return_value=True), \
@@ -1325,7 +1325,7 @@ class TestGcloudVerification(FuwarpTestCase):
     def test_verify_connection_gcloud_permission_error_is_ok(self, tmp_path):
         """Test gcloud verification with permission error (TLS still works)."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch('subprocess.run') as mock_run, \
              patch.object(instance, 'command_exists', return_value=True), \
@@ -1346,7 +1346,7 @@ class TestGcloudVerification(FuwarpTestCase):
     def test_verify_connection_gcloud_not_installed(self, tmp_path):
         """Test gcloud verification when not installed."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch.object(instance, 'command_exists', return_value=False):
             result = instance.verify_connection("gcloud")
@@ -1359,7 +1359,7 @@ class TestGcloudVerification(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch.object(instance, 'command_exists', return_value=True), \
              patch.object(instance, 'verify_connection', return_value="WORKING"), \
@@ -1383,7 +1383,7 @@ class TestGcloudVerification(FuwarpTestCase):
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         with patch.object(instance, 'command_exists', return_value=True), \
              patch.object(instance, 'verify_connection', return_value="FAILED"), \
@@ -1400,77 +1400,77 @@ class TestGcloudVerification(FuwarpTestCase):
             assert has_issues is True
 
 
-class TestCalVerVersion(FuwarpTestCase):
+class TestCalVerVersion(FumitmTestCase):
     """Tests for CalVer version handling."""
 
     def test_version_variable_exists(self):
         """Verify __version__ is defined."""
-        assert hasattr(fuwarp, '__version__')
-        assert fuwarp.__version__ is not None
+        assert hasattr(fumitm, '__version__')
+        assert fumitm.__version__ is not None
 
     def test_version_format_valid(self):
         """Verify version follows CalVer format."""
         import re
         pattern = r'^\d{4}\.\d{1,2}\.\d{1,2}(\.\d+)?$'
-        assert re.match(pattern, fuwarp.__version__), \
-            f"Version '{fuwarp.__version__}' doesn't match CalVer format YYYY.M.D or YYYY.M.D.N"
+        assert re.match(pattern, fumitm.__version__), \
+            f"Version '{fumitm.__version__}' doesn't match CalVer format YYYY.M.D or YYYY.M.D.N"
 
     def test_parse_calver_basic(self):
         """Test CalVer parsing for basic version."""
-        result = fuwarp.parse_calver("2025.12.18")
+        result = fumitm.parse_calver("2025.12.18")
         assert result == (2025, 12, 18, 0)
 
     def test_parse_calver_with_patch(self):
         """Test CalVer parsing with patch number."""
-        result = fuwarp.parse_calver("2025.12.18.3")
+        result = fumitm.parse_calver("2025.12.18.3")
         assert result == (2025, 12, 18, 3)
 
     def test_parse_calver_single_digit_month_day(self):
         """Test CalVer parsing with single-digit month/day."""
-        result = fuwarp.parse_calver("2025.1.5")
+        result = fumitm.parse_calver("2025.1.5")
         assert result == (2025, 1, 5, 0)
 
     def test_parse_calver_invalid_format(self):
         """Test CalVer parsing rejects invalid formats."""
         with pytest.raises(ValueError):
-            fuwarp.parse_calver("invalid")
+            fumitm.parse_calver("invalid")
         with pytest.raises(ValueError):
-            fuwarp.parse_calver("2025.12")
+            fumitm.parse_calver("2025.12")
         with pytest.raises(ValueError):
-            fuwarp.parse_calver("2025")
+            fumitm.parse_calver("2025")
 
     def test_version_comparison_newer(self):
         """Test version comparison detects newer versions."""
-        assert fuwarp.parse_calver("2025.12.19") > fuwarp.parse_calver("2025.12.18")
-        assert fuwarp.parse_calver("2025.12.18.1") > fuwarp.parse_calver("2025.12.18")
-        assert fuwarp.parse_calver("2026.1.1") > fuwarp.parse_calver("2025.12.31")
+        assert fumitm.parse_calver("2025.12.19") > fumitm.parse_calver("2025.12.18")
+        assert fumitm.parse_calver("2025.12.18.1") > fumitm.parse_calver("2025.12.18")
+        assert fumitm.parse_calver("2026.1.1") > fumitm.parse_calver("2025.12.31")
 
     def test_version_comparison_older(self):
         """Test version comparison detects older versions."""
-        assert fuwarp.parse_calver("2025.12.17") < fuwarp.parse_calver("2025.12.18")
-        assert fuwarp.parse_calver("2025.12.18") < fuwarp.parse_calver("2025.12.18.1")
-        assert fuwarp.parse_calver("2024.12.31") < fuwarp.parse_calver("2025.1.1")
+        assert fumitm.parse_calver("2025.12.17") < fumitm.parse_calver("2025.12.18")
+        assert fumitm.parse_calver("2025.12.18") < fumitm.parse_calver("2025.12.18.1")
+        assert fumitm.parse_calver("2024.12.31") < fumitm.parse_calver("2025.1.1")
 
     def test_version_comparison_equal(self):
         """Test version comparison with equal versions."""
-        assert fuwarp.parse_calver("2025.12.18") == fuwarp.parse_calver("2025.12.18")
+        assert fumitm.parse_calver("2025.12.18") == fumitm.parse_calver("2025.12.18")
         # Note: (2025, 12, 18, 0) should equal (2025, 12, 18, 0)
-        assert fuwarp.parse_calver("2025.12.18") == (2025, 12, 18, 0)
+        assert fumitm.parse_calver("2025.12.18") == (2025, 12, 18, 0)
 
 
-class TestUpdateCheckCalVer(FuwarpTestCase):
+class TestUpdateCheckCalVer(FumitmTestCase):
     """Tests for CalVer-based update checking."""
 
     def test_check_for_updates_newer_available(self, tmp_path):
         """Verify update check returns True for newer version."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         # Mock remote file with a version far in the future
         remote_content = b'__version__ = "2099.12.31"\n# rest of file...'
 
         with patch('urllib.request.urlopen') as mock_urlopen, \
-             patch.object(fuwarp, '__version__', '2025.1.1'):
+             patch.object(fumitm, '__version__', '2025.1.1'):
             mock_response = MagicMock()
             mock_response.read.return_value = remote_content
             mock_response.__enter__ = MagicMock(return_value=mock_response)
@@ -1483,10 +1483,10 @@ class TestUpdateCheckCalVer(FuwarpTestCase):
     def test_check_for_updates_same_version(self, tmp_path):
         """Verify update check returns False for same version."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         # Mock remote file with same version as local
-        remote_content = f'__version__ = "{fuwarp.__version__}"\n# rest...'.encode()
+        remote_content = f'__version__ = "{fumitm.__version__}"\n# rest...'.encode()
 
         with patch('urllib.request.urlopen') as mock_urlopen:
             mock_response = MagicMock()
@@ -1501,12 +1501,12 @@ class TestUpdateCheckCalVer(FuwarpTestCase):
     def test_check_for_updates_older_remote(self, tmp_path):
         """Verify update check returns False if remote is older."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         remote_content = b'__version__ = "2020.1.1"\n# rest...'
 
         with patch('urllib.request.urlopen') as mock_urlopen, \
-             patch.object(fuwarp, '__version__', '2025.12.18'):
+             patch.object(fumitm, '__version__', '2025.12.18'):
             mock_response = MagicMock()
             mock_response.read.return_value = remote_content
             mock_response.__enter__ = MagicMock(return_value=mock_response)
@@ -1519,7 +1519,7 @@ class TestUpdateCheckCalVer(FuwarpTestCase):
     def test_check_for_updates_no_version_in_remote(self, tmp_path):
         """Verify graceful handling when remote has no version."""
         with patch('platform.system', return_value='Darwin'):
-            instance = fuwarp.FuwarpPython(mode='status')
+            instance = fumitm.FumitmPython(mode='status')
 
         remote_content = b'# file without __version__\nprint("hello")'
 

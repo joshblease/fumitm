@@ -6,12 +6,12 @@ users accidentally point full-bundle env vars at a single WARP CA cert.
 """
 import pytest
 
-from helpers import MockBuilder, mock_fuwarp_environment, FuwarpTestCase
+from helpers import MockBuilder, mock_fumitm_environment, FumitmTestCase
 from unittest.mock import patch, ANY
 import mock_data
 
 
-class TestSuspiciousBundles(FuwarpTestCase):
+class TestSuspiciousBundles(FumitmTestCase):
     def test_is_suspicious_when_single_cert_file(self):
         """A file with a single PEM certificate is suspicious as a full bundle."""
         small_path = f"{mock_data.HOME_DIR}/small-bundle.pem"
@@ -22,8 +22,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance()
             suspicious, reason = instance.is_suspicious_full_bundle(small_path, None)
             assert suspicious is True
             assert "contains 1 certificate" in reason
@@ -40,15 +40,15 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance()
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance()
             suspicious, reason = instance.is_suspicious_full_bundle(bundle_path, None)
             assert suspicious is False
 
     def test_npm_repoint_on_suspicious_existing(self):
         """When npm cafile is a suspicious single-cert file, repoint to managed bundle in install mode."""
         npm_current = f"{mock_data.HOME_DIR}/npm-cafile.pem"
-        npm_managed = f"{mock_data.HOME_DIR}/.cloudflare-warp/npm/ca-bundle.pem"
+        npm_managed = f"{mock_data.HOME_DIR}/.fumitm/npm/ca-bundle.pem"
 
         mock_config = (
             MockBuilder()
@@ -63,8 +63,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='install')
             instance.setup_node_cert()  # calls setup_npm_cafile internally
             # Assert npm set called with managed path
             from helpers import assert_subprocess_called_with
@@ -91,8 +91,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='install')
             instance.setup_gcloud_cert()
             from helpers import assert_subprocess_called_with
             assert_subprocess_called_with(
@@ -103,7 +103,7 @@ class TestSuspiciousBundles(FuwarpTestCase):
     def test_git_setup_repoint_on_suspicious_existing(self):
         """When git http.sslCAInfo is suspicious, configure it to managed bundle in install mode."""
         git_current = f"{mock_data.HOME_DIR}/git-ca.pem"
-        git_managed = f"{mock_data.HOME_DIR}/.cloudflare-warp/git/ca-bundle.pem"
+        git_managed = f"{mock_data.HOME_DIR}/.fumitm/git/ca-bundle.pem"
 
         mock_config = (
             MockBuilder()
@@ -118,8 +118,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config) as mocks:
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config) as mocks:
+            instance = self.create_fumitm_instance(mode='install')
             instance.setup_git_cert()
             from helpers import assert_subprocess_called_with
             assert_subprocess_called_with(
@@ -130,7 +130,7 @@ class TestSuspiciousBundles(FuwarpTestCase):
     def test_curl_repoint_on_suspicious_existing(self):
         """When CURL_CA_BUNDLE is suspicious, repoint to managed bundle in install mode."""
         curl_current = f"{mock_data.HOME_DIR}/curl-ca.pem"
-        curl_managed = f"{mock_data.HOME_DIR}/.cloudflare-warp/curl/ca-bundle.pem"
+        curl_managed = f"{mock_data.HOME_DIR}/.fumitm/curl/ca-bundle.pem"
 
         mock_config = (
             MockBuilder()
@@ -143,8 +143,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance(mode='install')
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='install')
             with patch.object(type(instance), 'add_to_shell_config', wraps=instance.add_to_shell_config) as add_cfg:
                 instance.setup_curl_cert()
                 # Ensure we repointed CURL_CA_BUNDLE to managed path
@@ -164,8 +164,8 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config):
-            instance = self.create_fuwarp_instance(mode='status')
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='status')
             has_issues = instance.check_git_status(None)
             assert has_issues is True
 
@@ -177,9 +177,9 @@ class TestSuspiciousBundles(FuwarpTestCase):
         was already in NODE_EXTRA_CA_CERTS, skipping the call to setup_npm_cafile().
         This left npm with a suspicious single-cert bundle.
         """
-        node_extra_ca = f"{mock_data.HOME_DIR}/.cloudflare-warp/cloudflare-warp.pem"
+        node_extra_ca = f"{mock_data.HOME_DIR}/.fumitm/cloudflare-warp.pem"
         npm_current = node_extra_ca  # npm cafile points to same small file
-        npm_managed = f"{mock_data.HOME_DIR}/.cloudflare-warp/npm/ca-bundle.pem"
+        npm_managed = f"{mock_data.HOME_DIR}/.fumitm/npm/ca-bundle.pem"
         cert_path = f"{mock_data.HOME_DIR}/.cloudflare-ca.pem"
 
         mock_config = (
@@ -202,12 +202,12 @@ class TestSuspiciousBundles(FuwarpTestCase):
             .build()
         )
 
-        with mock_fuwarp_environment(mock_config) as mocks:
+        with mock_fumitm_environment(mock_config) as mocks:
             # Patch CERT_PATH to match our mocked home directory
             # (CERT_PATH is set at module import time before mocks)
-            import fuwarp
-            with patch.object(fuwarp, 'CERT_PATH', cert_path):
-                instance = self.create_fuwarp_instance(mode='install')
+            import fumitm
+            with patch.object(fumitm, 'CERT_PATH', cert_path):
+                instance = self.create_fumitm_instance(mode='install')
                 with patch('pathlib.Path.touch'):
                     instance.setup_node_cert()
                 # Key assertion: npm should be repointed to managed bundle

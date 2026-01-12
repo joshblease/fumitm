@@ -1,5 +1,5 @@
 """
-Centralized mock data for fuwarp tests.
+Centralized mock data for fumitm tests.
 
 This module contains all mock responses and test data used across the test suite.
 """

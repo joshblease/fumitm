@@ -1,12 +1,12 @@
-# fuwarp Test Suite
+# fumitm Test Suite
 
-Integration test suite for the fuwarp.py script
+Integration test suite for the fumitm.py script
 
 ## Overview
 
-This directory contains the integration test suite for fuwarp.py. The tests are maintained separately from the main script to preserve fuwarp.py as a standalone, single-file distribution.
+This directory contains the integration test suite for fumitm.py. The tests are maintained separately from the main script to preserve fumitm.py as a standalone, single-file distribution.
 
-The test suite provides comprehensive coverage of fuwarp's functionality through mocked external dependencies, ensuring reliability across different environments and configurations.
+The test suite provides comprehensive coverage of fumitm's functionality through mocked external dependencies, ensuring reliability across different environments and configurations.
 
 ## Quick Start
 
@@ -15,7 +15,7 @@ cd test_suite
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
-python -m pytest test_fuwarp_integration.py -v
+python -m pytest test_fumitm_integration.py -v
 ```
 
 ## Installation
@@ -44,35 +44,35 @@ python -m pytest test_fuwarp_integration.py -v
 
 ```bash
 # Run all tests with verbose output
-python -m pytest test_fuwarp_integration.py -v
+python -m pytest test_fumitm_integration.py -v
 
 # Run tests quietly
-python -m pytest test_fuwarp_integration.py -q
+python -m pytest test_fumitm_integration.py -q
 
 # Run specific test class
-python -m pytest test_fuwarp_integration.py::TestCertificateManagement -v
+python -m pytest test_fumitm_integration.py::TestCertificateManagement -v
 
 # Run specific test method
-python -m pytest test_fuwarp_integration.py::TestToolSetup::test_node_npm_setup_workflow -v
+python -m pytest test_fumitm_integration.py::TestToolSetup::test_node_npm_setup_workflow -v
 
 # Stop on first failure
-python -m pytest test_fuwarp_integration.py -x
+python -m pytest test_fumitm_integration.py -x
 
 # Run with coverage report
-python -m pytest test_fuwarp_integration.py --cov=fuwarp --cov-report=term-missing
+python -m pytest test_fumitm_integration.py --cov=fumitm --cov-report=term-missing
 ```
 
 ### Debugging Tests
 
 ```bash
 # Show print statements and logging
-python -m pytest test_fuwarp_integration.py -v -s
+python -m pytest test_fumitm_integration.py -v -s
 
 # Drop into debugger on failure
-python -m pytest test_fuwarp_integration.py --pdb
+python -m pytest test_fumitm_integration.py --pdb
 
 # Show full traceback
-python -m pytest test_fuwarp_integration.py -v --tb=long
+python -m pytest test_fumitm_integration.py -v --tb=long
 ```
 
 ## Test Architecture
@@ -87,7 +87,7 @@ test_suite/
 ├── helpers.py                 # Test utilities and MockBuilder
 ├── mock_data.py              # Centralized mock responses
 ├── requirements.txt          # Test dependencies
-├── test_fuwarp_integration.py # Main test suite
+├── test_fumitm_integration.py # Main test suite
 └── README.md                 # This file
 ```
 
@@ -116,7 +116,7 @@ The test suite uses a comprehensive mocking approach:
 
 ### Adding Tests for New Tools
 
-When adding support for a new tool in fuwarp.py:
+When adding support for a new tool in fumitm.py:
 
 1. Add mock data to `mock_data.py`:
    ```python
@@ -134,8 +134,8 @@ When adding support for a new tool in fuwarp.py:
            .with_subprocess_response(stdout=mock_data.NEWTOOL_VERSION)
            .build())
        
-       with mock_fuwarp_environment(mock_config) as mocks:
-           instance = self.create_fuwarp_instance(mode='install')
+       with mock_fumitm_environment(mock_config) as mocks:
+           instance = self.create_fumitm_instance(mode='install')
            instance.setup_newtool_cert()
            
            # Verify tool was detected and configured
@@ -193,7 +193,7 @@ jobs:
         uv venv
         source .venv/bin/activate
         uv pip install -r requirements.txt
-        python -m pytest test_fuwarp_integration.py -v
+        python -m pytest test_fumitm_integration.py -v
 ```
 
 ## Maintenance
@@ -211,7 +211,7 @@ uv pip install --upgrade pytest pytest-mock
 uv pip freeze > requirements.txt
 ```
 
-### When fuwarp.py Changes
+### When fumitm.py Changes
 
 1. Run existing tests to detect regressions
 2. Update mock data if command outputs change
@@ -226,7 +226,7 @@ uv pip freeze > requirements.txt
 - Check Python version compatibility
 
 **Mock Failures**
-- Verify patch paths match imports in fuwarp.py
+- Verify patch paths match imports in fumitm.py
 - Check mock_data.py for correct response formats
 - Ensure MockBuilder configuration matches test requirements
 

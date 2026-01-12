@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'fuwarp.py'
-      - 'fuwarp_windows.py'
+      - 'fumitm.py'
+      - 'fumitm_windows.py'
 
 permissions:
   contents: write
@@ -29,7 +29,7 @@ jobs:
         echo "date=$TODAY" >> $GITHUB_OUTPUT
 
         # Check current version in the file
-        CURRENT_VERSION=$(grep -oP '__version__\s*=\s*["'"'"']\K[0-9.]+' fuwarp.py || echo "")
+        CURRENT_VERSION=$(grep -oP '__version__\s*=\s*["'"'"']\K[0-9.]+' fumitm.py || echo "")
         echo "Current version: $CURRENT_VERSION"
 
         # Determine new version based on current
@@ -48,22 +48,22 @@ jobs:
         echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "New version will be: $NEW_VERSION"
 
-    - name: Update version in fuwarp.py
+    - name: Update version in fumitm.py
       run: |
-        sed -i 's/^__version__\s*=\s*["'"'"'][0-9.]*["'"'"']/__version__ = "${{ steps.version.outputs.new_version }}"/' fuwarp.py
+        sed -i 's/^__version__\s*=\s*["'"'"'][0-9.]*["'"'"']/__version__ = "${{ steps.version.outputs.new_version }}"/' fumitm.py
 
         # Verify the change
-        echo "Updated fuwarp.py version:"
-        grep '__version__' fuwarp.py
+        echo "Updated fumitm.py version:"
+        grep '__version__' fumitm.py
 
-    - name: Update version in fuwarp_windows.py
+    - name: Update version in fumitm_windows.py
       run: |
-        if [ -f fuwarp_windows.py ] && grep -q '__version__' fuwarp_windows.py; then
-          sed -i 's/^__version__\s*=\s*["'"'"'][0-9.]*["'"'"']/__version__ = "${{ steps.version.outputs.new_version }}"/' fuwarp_windows.py
-          echo "Updated fuwarp_windows.py version:"
-          grep '__version__' fuwarp_windows.py
+        if [ -f fumitm_windows.py ] && grep -q '__version__' fumitm_windows.py; then
+          sed -i 's/^__version__\s*=\s*["'"'"'][0-9.]*["'"'"']/__version__ = "${{ steps.version.outputs.new_version }}"/' fumitm_windows.py
+          echo "Updated fumitm_windows.py version:"
+          grep '__version__' fumitm_windows.py
         else
-          echo "fuwarp_windows.py not found or has no __version__, skipping"
+          echo "fumitm_windows.py not found or has no __version__, skipping"
         fi
 
     - name: Commit version stamp
@@ -75,7 +75,7 @@ jobs:
         if git diff --quiet; then
           echo "No version changes needed"
         else
-          git add fuwarp.py fuwarp_windows.py 2>/dev/null || git add fuwarp.py
+          git add fumitm.py fumitm_windows.py 2>/dev/null || git add fumitm.py
           git commit -m "chore: stamp version ${{ steps.version.outputs.new_version }} [skip-version]"
           git push
           echo "Version stamped and pushed: ${{ steps.version.outputs.new_version }}"

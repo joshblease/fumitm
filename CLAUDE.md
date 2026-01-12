@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-fuwarp (Cloudflare WARP Certificate Fixer Upper) is a Python script that automatically fixes TLS certificate trust issues when using Cloudflare WARP with TLS decryption. The script configures various development tools to trust WARP's Gateway CA certificate.
+fumitm (MITM Certificate Fixer Upper) is a Python script that automatically fixes TLS certificate trust issues when using Cloudflare WARP with TLS decryption. The script configures various development tools to trust WARP's Gateway CA certificate.
 
 ## Key Commands
 
@@ -12,25 +12,25 @@ fuwarp (Cloudflare WARP Certificate Fixer Upper) is a Python script that automat
 
 ```bash
 # Check current certificate status (no changes made)
-./fuwarp.py
+./fumitm.py
 
 # Actually install/update certificates (makes changes)
-./fuwarp.py --fix
+./fumitm.py --fix
 
 # Run with detailed debug output for troubleshooting
-./fuwarp.py --debug
-./fuwarp.py --debug --fix  # Debug mode with fixes
+./fumitm.py --debug
+./fumitm.py --debug --fix  # Debug mode with fixes
 
 # Show help
-./fuwarp.py --help
+./fumitm.py --help
 
 # List all available tools and their tags
-./fuwarp.py --list-tools
+./fumitm.py --list-tools
 
 # Check/fix specific tools only
-./fuwarp.py --tools node --tools python  # Check Node.js and Python only
-./fuwarp.py --fix --tools node-npm,gcloud  # Fix Node.js/npm and gcloud only
-./fuwarp.py --fix --tools java,db  # Fix Java and database tools using tags
+./fumitm.py --tools node --tools python  # Check Node.js and Python only
+./fumitm.py --fix --tools node-npm,gcloud  # Fix Node.js/npm and gcloud only
+./fumitm.py --fix --tools java,db  # Fix Java and database tools using tags
 ```
 
 ### Testing
@@ -41,11 +41,11 @@ The project has a pytest-based test suite in `test_suite/`:
 # Run all tests
 cd test_suite
 source .venv/bin/activate  # or create with: uv venv && uv pip install -r requirements.txt
-python -m pytest test_fuwarp_integration.py -v
+python -m pytest test_fumitm_integration.py -v
 
 # Run specific test classes
-python -m pytest test_fuwarp_integration.py::TestStatusFunctionContracts -v
-python -m pytest test_fuwarp_integration.py::TestCodeQuality -v
+python -m pytest test_fumitm_integration.py::TestStatusFunctionContracts -v
+python -m pytest test_fumitm_integration.py::TestCodeQuality -v
 ```
 
 Key test categories:

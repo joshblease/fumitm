@@ -1,4 +1,4 @@
-# fuwarp (Cloudflare WARP Certificate Fixer Upper)
+# fumitm (MITM Certificate Fixer Upper)
 
 Script to automatically verify and fix Cloudflare Warp Gateway TLS distrust issues
 
@@ -8,44 +8,44 @@ Script to automatically verify and fix Cloudflare Warp Gateway TLS distrust issu
 
 ```bash
 # Download the script
-curl -LsSf https://raw.githubusercontent.com/aberoham/fuwarp/main/fuwarp.py -o fuwarp.py
-chmod +x ./fuwarp.py
+curl -LsSf https://raw.githubusercontent.com/aberoham/fumitm/main/fumitm.py -o fumitm.py
+chmod +x ./fumitm.py
 
 # Check status (no changes made)
-./fuwarp.py
+./fumitm.py
 
 # Apply fixes
-./fuwarp.py --fix
+./fumitm.py --fix
 
 # Run with detailed debug output (useful for troubleshooting)
-./fuwarp.py --debug
+./fumitm.py --debug
 ```
 
 ### Windows
 
 ```powershell
 # Download the Windows-specific script
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/aberoham/fuwarp/main/fuwarp_windows.py" -OutFile "fuwarp_windows.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/aberoham/fumitm/main/fumitm_windows.py" -OutFile "fumitm_windows.py"
 
 # Check status (no changes made)
-python fuwarp_windows.py
+python fumitm_windows.py
 
 # Apply fixes to all supported tools
-python fuwarp_windows.py --fix
+python fumitm_windows.py --fix
 
 # Fix only specific tools (can specify multiple)
-python fuwarp_windows.py --fix --tools node --tools python
-python fuwarp_windows.py --fix --tools node-npm,gcloud
+python fumitm_windows.py --fix --tools node --tools python
+python fumitm_windows.py --fix --tools node-npm,gcloud
 
 # List all available tools and their tags
-python fuwarp_windows.py --list-tools
+python fumitm_windows.py --list-tools
 
 # Run with detailed debug/verbose output (useful for troubleshooting)
-python fuwarp_windows.py --debug
-python fuwarp_windows.py --verbose
+python fumitm_windows.py --debug
+python fumitm_windows.py --verbose
 
 # Show help and all available commands
-python fuwarp_windows.py --help
+python fumitm_windows.py --help
 ```
 
 #### Windows Command Line Options
@@ -57,7 +57,7 @@ python fuwarp_windows.py --help
 - `--list-tools` - List all available tools and their tags
 - `--debug, --verbose` - Show detailed debug information
 
-## FU Warp Rational
+## FU MITM Rationale
 
 When your organization runs Cloudflare WARP Gateway with TLS inspection enabled, the gateway intercepts and records virtually all HTTPS traffic for policy enforcement and security auditing. WARP's Gateway achieves this introspection by presenting its own root certificate to your TLS clients -- essentially performing a sanctioned man-in-the-middle (MITM) attack on your TLS (aka SSL) connections.
 
@@ -65,7 +65,7 @@ Typically, MacOS and Windows themselves will automatically trust WARP's certific
 
 One particularly annoying detail is that simply pointing tools to your organization's WARP Gateway certificate by itself rarely works. You often need to append the custom WARP CA to an existing bundle of public CAs, which quickly becomes a brittle process that needs repeating for each tool. 
 
-FU Warp!
+FU MITM!
 
 ## Don't Disable Warp
 
@@ -119,7 +119,7 @@ Something amiss or not quite right? Please post the full output of a run to an i
 
 #### Windows-Specific Notes
 
-The Windows version (`fuwarp_windows.py`) includes Windows-specific functionality:
+The Windows version (`fumitm_windows.py`) includes Windows-specific functionality:
 
 - Uses Windows Registry to locate certificates and configuration
 - Handles Windows paths and file permissions
@@ -128,9 +128,9 @@ The Windows version (`fuwarp_windows.py`) includes Windows-specific functionalit
 
 ### VS Code Devcontainers / WSL
 
-Fuwarp should auto-detect VS Code devcontainers and WSL environments where `warp-cli` is only available on the underlying host. Within these environments, fuwarp will guide the user where to obtain their Cloudflare cert and will skip slow verification tests.
+Fumitm should auto-detect VS Code devcontainers and WSL environments where `warp-cli` is only available on the underlying host. Within these environments, fumitm will guide the user where to obtain their Cloudflare cert and will skip slow verification tests.
 
-Fuwarp should auto-detect WSL environments where `warp-cli` is only available on the underlying Windows host. Within WSL, fuwarp will guide the user where to obtain their Cloudflare cert and will skip slow verification tests.
+Fumitm should auto-detect WSL environments where `warp-cli` is only available on the underlying Windows host. Within WSL, fumitm will guide the user where to obtain their Cloudflare cert and will skip slow verification tests.
 
 ## Installation Alternative
 
@@ -139,21 +139,21 @@ You can also run the script directly from the repository:
 ### Linux/macOS
 ```bash
 # Clone the repository
-git clone https://github.com/aberoham/fuwarp.git
-cd fuwarp
+git clone https://github.com/aberoham/fumitm.git
+cd fumitm
 
 # Run the script
-./fuwarp.py --fix
+./fumitm.py --fix
 ```
 
 ### Windows
 ```powershell
 # Clone the repository
-git clone https://github.com/aberoham/fuwarp.git
-cd fuwarp
+git clone https://github.com/aberoham/fumitm.git
+cd fumitm
 
 # Run the Windows-specific script
-python fuwarp_windows.py --fix
+python fumitm_windows.py --fix
 ```
 
 ## Troubleshooting
@@ -161,7 +161,7 @@ python fuwarp_windows.py --fix
 If you encounter issues:
 
 1. Ensure WARP is connected: `warp-cli status`
-2. Run with debug output: `./fuwarp.py --debug` (Linux/macOS) or `python fuwarp_windows.py --debug` (Windows)
+2. Run with debug output: `./fumitm.py --debug` (Linux/macOS) or `python fumitm_windows.py --debug` (Windows)
 3. Check that Python 3 is properly installed and in your PATH
 4. Verify you have appropriate permissions for the tools you're trying to fix
 

@@ -19,7 +19,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Version and metadata
-__description__ = "Cloudflare WARP Certificate Fixer Upper for macOS and Linux"
+__description__ = "MITM Certificate Fixer Upper for macOS and Linux"
 __author__ = "Ingersoll & Claude"
 __version__ = "2025.12.18.1"  # CalVer: YYYY.MM.DD (auto-updated on release)
 
@@ -153,7 +153,7 @@ CERT_PATH = os.path.expanduser("~/.cloudflare-ca.pem")
 SMALL_BUNDLE_MAX_CERTS = 2
 SMALL_BUNDLE_MAX_SIZE_BYTES = 50 * 1024  # 50KB
 
-class FuwarpPython:
+class FumitmPython:
     def __init__(self, mode='status', debug=False, selected_tools=None, cert_file=None, manual_cert=False, skip_verify=False):
         self.mode = mode
         self.debug = debug
@@ -353,7 +353,7 @@ class FuwarpPython:
             print(f"{BLUE}[DEBUG]{NC} {msg}", file=sys.stderr)
 
     def check_for_updates(self):
-        """Check if a newer version of fuwarp is available on GitHub.
+        """Check if a newer version of fumitm is available on GitHub.
 
         Uses CalVer version comparison instead of file hashes to avoid
         false positives from local modifications or formatting differences.
@@ -369,11 +369,11 @@ class FuwarpPython:
         try:
             # Use unverified SSL context - WARP might not be configured yet
             context = ssl._create_unverified_context()
-            url = "https://raw.githubusercontent.com/aberoham/fuwarp/main/fuwarp.py"
+            url = "https://raw.githubusercontent.com/aberoham/fumitm/main/fumitm.py"
 
             self.print_debug(f"Checking for updates from {url}")
 
-            req = urllib.request.Request(url, headers={'User-Agent': 'fuwarp-update-check'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'fumitm-update-check'})
             with urllib.request.urlopen(req, context=context, timeout=10) as response:
                 remote_content = response.read().decode('utf-8')
 
@@ -402,20 +402,20 @@ class FuwarpPython:
             if remote_tuple > local_tuple:
                 print()
                 self.print_warn("=" * 60)
-                self.print_warn("A newer version of fuwarp.py is available!")
+                self.print_warn("A newer version of fumitm.py is available!")
                 self.print_info(f"  Local:  {local_version}")
                 self.print_info(f"  Remote: {remote_version}")
                 self.print_warn("Update before running --fix to ensure best results:")
                 # Use -k to skip cert verification since user's curl may be broken
                 # (which is likely why they're running this script)
-                self.print_info("  curl -kLsSf https://raw.githubusercontent.com/aberoham/fuwarp/main/fuwarp.py -o fuwarp.py")
+                self.print_info("  curl -kLsSf https://raw.githubusercontent.com/aberoham/fumitm/main/fumitm.py -o fumitm.py")
                 self.print_warn("=" * 60)
                 print()
                 return True
             elif remote_tuple < local_tuple:
                 self.print_debug(f"Running development version ({local_version} > {remote_version})")
             else:
-                self.print_debug("fuwarp.py is up to date")
+                self.print_debug("fumitm.py is up to date")
 
         except Exception as e:
             self.print_debug(f"Update check failed (this is OK): {e}")
@@ -442,7 +442,7 @@ class FuwarpPython:
     def suggest_user_path(self, original_path, purpose):
         """Suggest alternative path."""
         filename = os.path.basename(original_path)
-        return os.path.expanduser(f"~/.cloudflare-warp/{purpose}/{filename}")
+        return os.path.expanduser(f"~/.fumitm/{purpose}/{filename}")
     
     def detect_shell(self):
         """Detect the user's default shell with multiple fallbacks."""
@@ -1013,7 +1013,7 @@ class FuwarpPython:
         self.print_info("Devcontainer Detected - Manual Certificate Setup")
         self.print_info("=" * 70)
         print()
-        self.print_info("You're running fuwarp inside a devcontainer where warp-cli isn't available.")
+        self.print_info("You're running fumitm inside a devcontainer where warp-cli isn't available.")
         self.print_info("The WARP certificate needs to be obtained from your Windows host machine.")
         print()
         self.print_info("QUICKEST METHOD:")
@@ -1024,7 +1024,7 @@ class FuwarpPython:
         print()
         self.print_info("ALTERNATIVE METHOD:")
         self.print_info(f"1. Save the certificate to a file accessible from this container")
-        self.print_info(f"2. Run: ./fuwarp.py --fix --cert-file /path/to/cert.pem")
+        self.print_info(f"2. Run: ./fumitm.py --fix --cert-file /path/to/cert.pem")
         print()
         
         choice = input("Ready to paste? Press ENTER to continue, 'F' for file path, or 'Q' to quit: ").strip().upper()
@@ -1143,7 +1143,7 @@ class FuwarpPython:
                 warp_cert = self.get_certificate_from_user()
                 if not warp_cert:
                     self.print_error("Cannot proceed without a certificate in devcontainer environment")
-                    self.print_info("Tip: Run './fuwarp.py --fix' to set up the certificate")
+                    self.print_info("Tip: Run './fumitm.py --fix' to set up the certificate")
                     return False
         
         # Priority 4: Standard path - use warp-cli if available
@@ -1286,7 +1286,7 @@ class FuwarpPython:
             needs_setup = True
             self.print_info("Configuring Node.js certificate...")
             # NODE_EXTRA_CA_CERTS not set, create a new bundle
-            node_bundle = os.path.expanduser("~/.cloudflare-warp/node/ca-bundle.pem")
+            node_bundle = os.path.expanduser("~/.fumitm/node/ca-bundle.pem")
             
             if not self.is_install_mode():
                 self.print_action(f"Would create Node.js CA bundle at {node_bundle}")
@@ -1324,7 +1324,7 @@ class FuwarpPython:
             current_cafile = ""
         
         # npm needs a full CA bundle, not just a single certificate
-        npm_bundle = os.path.expanduser("~/.cloudflare-warp/npm/ca-bundle.pem")
+        npm_bundle = os.path.expanduser("~/.fumitm/npm/ca-bundle.pem")
         needs_setup = False
         
         if current_cafile and current_cafile not in ["null", "undefined"]:
@@ -1464,9 +1464,9 @@ class FuwarpPython:
                 return  # Not set, nothing to do
 
             # Check if it points to our managed npm bundle (that's fine)
-            npm_bundle = os.path.expanduser("~/.cloudflare-warp/npm/ca-bundle.pem")
+            npm_bundle = os.path.expanduser("~/.fumitm/npm/ca-bundle.pem")
             if current_cafile == npm_bundle:
-                return  # Points to fuwarp-managed bundle, that's OK
+                return  # Points to fumitm-managed bundle, that's OK
 
             # Check if file exists and contains WARP cert
             if os.path.exists(current_cafile) and self.certificate_exists_in_file(CERT_PATH, current_cafile):
@@ -1507,9 +1507,9 @@ class FuwarpPython:
                 return  # Not set, nothing to do
 
             # Check if it points to our managed npm bundle (that's fine)
-            npm_bundle = os.path.expanduser("~/.cloudflare-warp/npm/ca-bundle.pem")
+            npm_bundle = os.path.expanduser("~/.fumitm/npm/ca-bundle.pem")
             if current_cafile == npm_bundle:
-                return  # Points to fuwarp-managed bundle, that's OK
+                return  # Points to fumitm-managed bundle, that's OK
 
             # Check if file exists and contains WARP cert
             if os.path.exists(current_cafile) and self.certificate_exists_in_file(CERT_PATH, current_cafile):
@@ -1793,7 +1793,7 @@ class FuwarpPython:
         """Setup Git sslCAInfo to a managed full bundle."""
         if not self.command_exists('git'):
             return
-        git_bundle = os.path.expanduser("~/.cloudflare-warp/git/ca-bundle.pem")
+        git_bundle = os.path.expanduser("~/.fumitm/git/ca-bundle.pem")
         # Check current setting
         try:
             result = subprocess.run(['git', 'config', '--global', 'http.sslCAInfo'], capture_output=True, text=True)
@@ -1844,7 +1844,7 @@ class FuwarpPython:
             self.print_debug("curl already works via system trust, skipping configuration")
             return
 
-        curl_bundle = os.path.expanduser("~/.cloudflare-warp/curl/ca-bundle.pem")
+        curl_bundle = os.path.expanduser("~/.fumitm/curl/ca-bundle.pem")
         curl_env = os.environ.get('CURL_CA_BUNDLE', '')
 
         # Case 1: CURL_CA_BUNDLE is set but points to suspicious or non-existent file
@@ -1901,7 +1901,7 @@ class FuwarpPython:
                         suspicious, reason = self.is_suspicious_full_bundle(git_ca, None)
                         if suspicious:
                             self.print_warn(f"  ⚠ http.sslCAInfo looks suspiciously small ({reason})")
-                            self.print_action("    Run with --fix or use: git config --global http.sslCAInfo ~/.cloudflare-warp/git/ca-bundle.pem")
+                            self.print_action("    Run with --fix or use: git config --global http.sslCAInfo ~/.fumitm/git/ca-bundle.pem")
                             has_issues = True
                     else:
                         self.print_warn(f"  ✗ http.sslCAInfo points to non-existent file: {git_ca}")
@@ -2171,7 +2171,7 @@ class FuwarpPython:
                 self.print_warn("Failed to add certificate to DBeaver keystore (may require sudo)")
                 if len(result.stdout) > 0:
                     self.print_warn(f"Keytool response: {result.stdout.decode('utf-8')}")
-                self.print_warn("You may need to run: sudo ./fuwarp.py --fix")
+                self.print_warn("You may need to run: sudo ./fumitm.py --fix")
     
     def setup_wget_cert(self):
         """Setup wget certificate."""
@@ -2310,7 +2310,7 @@ class FuwarpPython:
                     self.print_info("Certificate in ~/.docker/certs.d/ will be available for future use")
             else:
                 self.print_info("Podman machine is not running")
-                self.print_info("Run 'podman machine start' then re-run fuwarp to install into VM")
+                self.print_info("Run 'podman machine start' then re-run fumitm to install into VM")
     
     def setup_rancher_cert(self):
         """Setup Rancher Desktop certificate.
@@ -2378,7 +2378,7 @@ class FuwarpPython:
                     self.print_info("Certificate in ~/.docker/certs.d/ will be available for future use")
             else:
                 self.print_info("Rancher Desktop is not running")
-                self.print_info("Start Rancher Desktop then re-run fuwarp to install into VM")
+                self.print_info("Start Rancher Desktop then re-run fumitm to install into VM")
     
     def setup_android_emulator_cert(self):
         """Setup Android Emulator certificate."""
@@ -2809,7 +2809,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
                     yarn_cafile = result.stdout.strip()
 
                     if yarn_cafile and yarn_cafile not in ['undefined', '']:
-                        npm_bundle = os.path.expanduser("~/.cloudflare-warp/npm/ca-bundle.pem")
+                        npm_bundle = os.path.expanduser("~/.fumitm/npm/ca-bundle.pem")
                         if yarn_cafile == npm_bundle:
                             self.print_info(f"  ✓ yarn {config_key} points to managed npm bundle")
                         elif os.path.exists(yarn_cafile):
@@ -2836,7 +2836,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
                     pnpm_cafile = result.stdout.strip()
 
                     if pnpm_cafile and pnpm_cafile not in ['undefined', '']:
-                        npm_bundle = os.path.expanduser("~/.cloudflare-warp/npm/ca-bundle.pem")
+                        npm_bundle = os.path.expanduser("~/.fumitm/npm/ca-bundle.pem")
                         if pnpm_cafile == npm_bundle:
                             self.print_info("  ✓ pnpm cafile points to managed npm bundle")
                         elif os.path.exists(pnpm_cafile):
@@ -3196,7 +3196,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
                     if result.returncode == 0:
                         self.print_info("  ✓ Certificate installed in running VM")
                     else:
-                        self.print_info("  - Certificate not in VM (run fuwarp --fix to install)")
+                        self.print_info("  - Certificate not in VM (run fumitm --fix to install)")
                 else:
                     self.print_info("  - Podman machine is stopped (certificate will be available on start)")
             except Exception:
@@ -3238,7 +3238,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
                     if result.returncode == 0:
                         self.print_info("  ✓ Certificate installed in running VM")
                     else:
-                        self.print_info("  - Certificate not in VM (run fuwarp --fix to install)")
+                        self.print_info("  - Certificate not in VM (run fumitm --fix to install)")
                 else:
                     self.print_info("  - Rancher Desktop is stopped (certificate will be available on start)")
             except Exception:
@@ -3480,7 +3480,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
         self.print_info("========")
         if has_issues:
             self.print_warn("Some configurations need attention.")
-            self.print_action("Run './fuwarp.py --fix' to fix the issues")
+            self.print_action("Run './fumitm.py --fix' to fix the issues")
         else:
             self.print_info("✓ All configured tools are properly set up for Cloudflare WARP")
         print()
@@ -3631,7 +3631,7 @@ def main():
 
     # Handle --version first
     if args.version:
-        print(f"fuwarp {__version__}")
+        print(f"fumitm {__version__}")
         version_info = VERSION_INFO
         if version_info['commit'] != 'unknown':
             print(f"  Git commit: {version_info['commit']} ({version_info['date']})")
@@ -3643,12 +3643,12 @@ def main():
     # Handle --list-tools
     if args.list_tools:
         # Create a temporary instance just to access the registry
-        temp_fuwarp = FuwarpPython()
+        temp_fumitm = FumitmPython()
         print("Available tools:")
-        for tool_key, tool_info in temp_fuwarp.tools_registry.items():
+        for tool_key, tool_info in temp_fumitm.tools_registry.items():
             tags_str = ', '.join(tool_info['tags'])
             print(f"  {tool_key:<10} - {tool_info['name']:<20} Tags: {tags_str}")
-        print("\nExamples: ./fuwarp.py --fix --tools node,python  or  ./fuwarp.py --fix --tools node-npm --tools gcp")
+        print("\nExamples: ./fumitm.py --fix --tools node,python  or  ./fumitm.py --fix --tools node-npm --tools gcp")
         sys.exit(0)
     
     # Process --tools argument
@@ -3661,16 +3661,16 @@ def main():
     # Determine mode
     mode = 'install' if args.fix else 'status'
     
-    # Create and run fuwarp instance
-    fuwarp = FuwarpPython(
-        mode=mode, 
-        debug=args.debug, 
+    # Create and run fumitm instance
+    fumitm = FumitmPython(
+        mode=mode,
+        debug=args.debug,
         selected_tools=selected_tools,
         cert_file=args.cert_file,
         manual_cert=args.manual_cert,
         skip_verify=args.skip_verify
     )
-    exit_code = fuwarp.main()
+    exit_code = fumitm.main()
     sys.exit(exit_code)
 
 

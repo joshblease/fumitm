@@ -19,7 +19,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Version and metadata
-__description__ = "Cloudflare WARP Certificate Fixer Upper for Windows"
+__description__ = "MITM Certificate Fixer Upper for Windows"
 __author__ = "Ingersoll & Claude"
 __version__ = "2025.12.18.1"  # CalVer: YYYY.MM.DD (auto-updated on release)
 
@@ -149,15 +149,15 @@ NC = "\033[0m"  # No Color
 
 # Certificate details
 # Base directory for tool-specific certificate bundles
-CLOUDFLARE_WARP_DIR = os.path.join(os.path.expanduser("~"), ".cloudflare-warp")
-CERT_PATH = os.path.join(CLOUDFLARE_WARP_DIR, "THG-CloudflareCert.pem")
+FUMITM_DIR = os.path.join(os.path.expanduser("~"), ".fumitm")
+CERT_PATH = os.path.join(FUMITM_DIR, "THG-CloudflareCert.pem")
 # No alternative certificate file names - we generate our own specific cert
 ALT_CERT_NAMES = []
 SHELL_MODIFIED = False
 CERT_FINGERPRINT = ""  # Cache for certificate fingerprint
 
 
-class FuwarpWindows:
+class FumitmWindows:
     def __init__(
         self, mode="status", debug=False, selected_tools=None, use_warp_cli=False
     ):
@@ -432,7 +432,7 @@ class FuwarpWindows:
     def get_tool_bundle_path(self, tool_name):
         """Get the standardized bundle path for a tool."""
         # Use os.path.join consistently and normalize the result
-        path = os.path.join(CLOUDFLARE_WARP_DIR, tool_name, "ca-bundle.pem")
+        path = os.path.join(FUMITM_DIR, tool_name, "ca-bundle.pem")
         return os.path.normpath(path)
 
     def find_existing_bundle(self, tool_name):
@@ -956,13 +956,13 @@ class FuwarpWindows:
             if not self.is_install_mode():
                 self.print_action(f"Would save THG certificate to {CERT_PATH}")
                 self.print_action(
-                    f"Would create .cloudflare-warp directory at {CLOUDFLARE_WARP_DIR}"
+                    f"Would create .fumitm directory at {FUMITM_DIR}"
                 )
             else:
-                # Ensure .cloudflare-warp directory exists
-                os.makedirs(CLOUDFLARE_WARP_DIR, exist_ok=True)
+                # Ensure .fumitm directory exists
+                os.makedirs(FUMITM_DIR, exist_ok=True)
                 self.print_info(
-                    f"Created .cloudflare-warp directory at {CLOUDFLARE_WARP_DIR}"
+                    f"Created .fumitm directory at {FUMITM_DIR}"
                 )
 
                 # Save certificate
@@ -2513,7 +2513,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
         self.print_info("========")
         if has_issues:
             self.print_warn("Some configurations need attention.")
-            self.print_action("Run 'python fuwarp_windows.py --fix' to fix the issues")
+            self.print_action("Run 'python fumitm_windows.py --fix' to fix the issues")
         else:
             self.print_info(
                 "✓ All configured tools are properly set up for Cloudflare WARP"
@@ -2639,15 +2639,15 @@ def main():
         version_str += " [modified]"
 
     parser = argparse.ArgumentParser(
-        description="Cloudflare WARP Certificate Fixer Upper for Windows",
+        description="MITM Certificate Fixer Upper for Windows",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 Examples:
-  python fuwarp_windows.py                    # Check status of all tools
-  python fuwarp_windows.py --fix              # Fix all detected issues
-  python fuwarp_windows.py --tools node       # Check only Node.js
-  python fuwarp_windows.py --fix --tools python,git  # Fix Python and Git only
-  python fuwarp_windows.py --list-tools       # Show available tools
+  python fumitm_windows.py                    # Check status of all tools
+  python fumitm_windows.py --fix              # Fix all detected issues
+  python fumitm_windows.py --tools node       # Check only Node.js
+  python fumitm_windows.py --fix --tools python,git  # Fix Python and Git only
+  python fumitm_windows.py --list-tools       # Show available tools
 
 {version_str} | Default: status check only (use --fix to make changes)
         """,
@@ -2701,14 +2701,14 @@ Examples:
     # Handle --list-tools first
     if args.list_tools:
         # Create a temporary instance just to access the registry
-        temp_fuwarp = FuwarpWindows()
+        temp_fumitm = FumitmWindows()
         print("Available tools:")
-        for tool_key, tool_info in temp_fuwarp.tools_registry.items():
+        for tool_key, tool_info in temp_fumitm.tools_registry.items():
             tags_str = ", ".join(tool_info["tags"])
             print(f"  {tool_key:<10} - {tool_info['name']:<25} Tags: {tags_str}")
-        print("\nExamples: python fuwarp_windows.py --fix --tools node,python")
+        print("\nExamples: python fumitm_windows.py --fix --tools node,python")
         print(
-            "          python fuwarp_windows.py --fix --tools node-npm --tools podman"
+            "          python fumitm_windows.py --fix --tools node-npm --tools podman"
         )
         sys.exit(0)
 
@@ -2722,14 +2722,14 @@ Examples:
     # Determine mode
     mode = "install" if args.fix else "status"
 
-    # Create and run fuwarp instance
-    fuwarp = FuwarpWindows(
+    # Create and run fumitm instance
+    fumitm = FumitmWindows(
         mode=mode,
         debug=args.debug,
         selected_tools=selected_tools,
         use_warp_cli=args.use_warp_cli,
     )
-    exit_code = fuwarp.main()
+    exit_code = fumitm.main()
     sys.exit(exit_code)
 
 

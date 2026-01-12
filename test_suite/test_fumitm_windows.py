@@ -1,5 +1,5 @@
 """
-Integration tests for fuwarp_windows.py
+Integration tests for fumitm_windows.py
 
 These tests verify the Windows port's functionality, particularly the
 certificate appending logic and newline handling fix for issue #13.
@@ -14,12 +14,12 @@ if sys.platform != 'win32':
     pytest.skip("Windows-only tests", allow_module_level=True)
 
 # Import test utilities
-from helpers import import_fuwarp_windows
+from helpers import import_fumitm_windows
 import mock_data
 
 
 # Import the Windows module using our helper
-fuwarp_windows = import_fuwarp_windows()
+fumitm_windows = import_fumitm_windows()
 
 
 class TestCertificateAppendingWindows:
@@ -51,7 +51,7 @@ class TestCertificateAppendingWindows:
 
         # Create instance and call append_certificate_if_missing
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             result = instance.append_certificate_if_missing(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -94,7 +94,7 @@ class TestCertificateAppendingWindows:
 
         # Call append
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             result = instance.append_certificate_if_missing(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -128,7 +128,7 @@ class TestCertificateAppendingWindows:
 
         # Call append
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             result = instance.append_certificate_if_missing(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -153,7 +153,7 @@ class TestCertificateAppendingWindows:
         # Create instance and mock certificate_exists_in_file to return True
         # (since mock certificates don't work with openssl fingerprint check)
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             with patch.object(instance, 'certificate_exists_in_file', return_value=True):
                 result = instance.append_certificate_if_missing(str(cert_file), str(bundle_file))
 
@@ -174,7 +174,7 @@ class TestCertificateAppendingWindows:
 
         # Call append
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             result = instance.append_certificate_if_missing(str(cert_file), str(bundle_file))
 
         assert result is True
@@ -198,7 +198,7 @@ class TestCertificateAppendingWindows:
 
         # Try to append the file to itself
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='install', debug=True)
             result = instance.append_certificate_if_missing(str(test_file), str(test_file))
 
         # Should handle gracefully (return True without error)
@@ -209,28 +209,28 @@ class TestWindowsBasicFunctionality:
     """Basic functionality tests for the Windows port."""
 
     def test_instance_creation(self):
-        """Test that FuwarpWindows can be instantiated."""
+        """Test that FumitmWindows can be instantiated."""
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='status')
+            instance = fumitm_windows.FumitmWindows(mode='status')
             assert instance is not None
             assert instance.mode == 'status'
 
     def test_install_mode_setting(self):
         """Test that install mode is set correctly."""
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='install')
+            instance = fumitm_windows.FumitmWindows(mode='install')
             assert instance.is_install_mode() is True
 
-            instance = fuwarp_windows.FuwarpWindows(mode='status')
+            instance = fumitm_windows.FumitmWindows(mode='status')
             assert instance.is_install_mode() is False
 
     def test_debug_mode_setting(self):
         """Test that debug mode is set correctly."""
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='status', debug=True)
+            instance = fumitm_windows.FumitmWindows(mode='status', debug=True)
             assert instance.is_debug_mode() is True
 
-            instance = fuwarp_windows.FuwarpWindows(mode='status', debug=False)
+            instance = fumitm_windows.FumitmWindows(mode='status', debug=False)
             assert instance.is_debug_mode() is False
 
 
@@ -265,7 +265,7 @@ class TestStatusFunctionContractsWindows:
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='status')
+            instance = fumitm_windows.FumitmWindows(mode='status')
 
         status_methods = self.get_all_status_methods(instance)
 
@@ -307,7 +307,7 @@ class TestStatusFunctionContractsWindows:
         cert_file.write_text(mock_data.MOCK_CERTIFICATE)
 
         with patch('platform.system', return_value='Windows'):
-            instance = fuwarp_windows.FuwarpWindows(mode='status')
+            instance = fumitm_windows.FumitmWindows(mode='status')
 
         # Get methods excluding check_system_status (it always checks Windows store)
         status_methods = [

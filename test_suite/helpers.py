@@ -1,5 +1,5 @@
 """
-Test helpers and utilities for fuwarp tests.
+Test helpers and utilities for fumitm tests.
 
 This module provides helper classes and functions to simplify test setup and assertions.
 """
@@ -108,15 +108,15 @@ class MockBuilder:
 
 
 @contextmanager
-def mock_fuwarp_environment(mock_config):
-    """Context manager to set up a complete mock environment for fuwarp."""
+def mock_fumitm_environment(mock_config):
+    """Context manager to set up a complete mock environment for fumitm."""
     with patch('platform.system', return_value=mock_config['platform']), \
-         patch('fuwarp.shutil.which') as mock_which, \
-         patch('fuwarp.os.path.exists') as mock_exists, \
-         patch('fuwarp.subprocess.run') as mock_subprocess, \
-         patch('fuwarp.os.environ', mock_config['environ']), \
-         patch('fuwarp.os.makedirs'), \
-         patch('fuwarp.shutil.copy'), \
+         patch('fumitm.shutil.which') as mock_which, \
+         patch('fumitm.os.path.exists') as mock_exists, \
+         patch('fumitm.subprocess.run') as mock_subprocess, \
+         patch('fumitm.os.environ', mock_config['environ']), \
+         patch('fumitm.os.makedirs'), \
+         patch('fumitm.shutil.copy'), \
          patch('builtins.open', side_effect=mock_config['open_side_effect']):
         
         mock_which.side_effect = mock_config['which_side_effect']
@@ -175,35 +175,35 @@ def create_temp_cert_file(tmp_path):
     return str(cert_path)
 
 
-class FuwarpTestCase:
+class FumitmTestCase:
     """Base class providing common test functionality."""
 
     @staticmethod
-    def create_fuwarp_instance(mode='status', debug=False, selected_tools=None):
+    def create_fumitm_instance(mode='status', debug=False, selected_tools=None):
         """Create a FuwarpPython instance with proper mocking."""
-        import fuwarp
+        import fumitm
         with patch('platform.system', return_value='Darwin'):
-            return fuwarp.FuwarpPython(
+            return fumitm.FumitmPython(
                 mode=mode,
                 debug=debug,
                 selected_tools=selected_tools or []
             )
 
 
-def import_fuwarp_windows():
-    """Import the Windows version of fuwarp.
+def import_fumitm_windows():
+    """Import the Windows version of fumitm.
 
-    Since fuwarp_windows.py is in the parent directory, we need to use
+    Since fumitm_windows.py is in the parent directory, we need to use
     importlib to load it as a module.
     """
     import importlib.util
     import os
 
-    # Get path to fuwarp_windows.py relative to test_suite directory
+    # Get path to fumitm_windows.py relative to test_suite directory
     test_suite_dir = os.path.dirname(os.path.abspath(__file__))
-    module_path = os.path.join(os.path.dirname(test_suite_dir), "fuwarp_windows.py")
+    module_path = os.path.join(os.path.dirname(test_suite_dir), "fumitm_windows.py")
 
-    spec = importlib.util.spec_from_file_location("fuwarp_windows", module_path)
+    spec = importlib.util.spec_from_file_location("fumitm_windows", module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
