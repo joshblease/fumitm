@@ -4,7 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-fumitm (MITM Certificate Fixer Upper) is a Python script that automatically fixes TLS certificate trust issues when using Cloudflare WARP with TLS decryption. The script configures various development tools to trust WARP's Gateway CA certificate.
+fumitm (MITM Certificate Fixer Upper) is a Python script that automatically fixes TLS certificate trust issues caused by zero-trust MITM (man-in-the-middle) proxy solutions that perform TLS inspection. These enterprise security tools intercept HTTPS traffic by presenting their own root certificates, which many development tools don't trust by default.
+
+### Supported Providers
+
+| Provider | Status | Certificate Source |
+|----------|--------|-------------------|
+| Cloudflare WARP | ✅ Supported | `warp-cli certs` |
+| NetSkope | 🔜 Planned | TBD |
+
+### Multi-Provider Architecture
+
+The codebase is designed to support multiple MITM proxy providers simultaneously:
+
+- **Provider-specific variables**: Names like `warp_cert`, `warp_status` are intentionally provider-specific. When NetSkope support is added, there will be parallel `netskope_cert`, `netskope_status` variables.
+- **Provider-specific certificate paths**: Each provider has its own certificate location (e.g., `~/.cloudflare-ca.pem`). This allows users to have certificates from multiple providers installed.
+- **Shared bundle directory**: Tool-specific bundles are stored in `~/.fumitm/` (e.g., `~/.fumitm/node/ca-bundle.pem`). These bundles can contain certificates from multiple providers.
+- **Provider-specific filenames in containers**: When pushing certificates to container VMs, provider-specific filenames are used (e.g., `cloudflare-warp.crt`) to allow multiple provider certs to coexist.
 
 ## Key Commands
 
@@ -70,10 +86,11 @@ The script follows a modular architecture with these key components:
 
 1. **Mode System**: Two modes - "status" (default, read-only) and "install" (with `--fix` flag)
 
-2. **Certificate Management**: 
+2. **Certificate Management** (currently Cloudflare WARP):
    - Downloads certificate from `warp-cli certs`
-   - Stores at `$HOME/.cloudflare-ca.pem`
+   - Stores at `$HOME/.cloudflare-ca.pem` (provider-specific path)
    - Checks for updates and certificate validity
+   - Future providers will have parallel download/storage logic
 
 3. **Tool-Specific Setup Functions**:
    - Each supported tool has its own `setup_*_cert()` function

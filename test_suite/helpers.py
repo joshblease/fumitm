@@ -180,7 +180,7 @@ class FumitmTestCase:
 
     @staticmethod
     def create_fumitm_instance(mode='status', debug=False, selected_tools=None):
-        """Create a FuwarpPython instance with proper mocking."""
+        """Create a FumitmPython instance with proper mocking."""
         import fumitm
         with patch('platform.system', return_value='Darwin'):
             return fumitm.FumitmPython(

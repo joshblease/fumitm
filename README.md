@@ -1,6 +1,13 @@
 # fumitm (MITM Certificate Fixer Upper)
 
-Script to automatically verify and fix Cloudflare Warp Gateway TLS distrust issues
+Script to automatically verify and fix TLS certificate trust issues caused by zero-trust MITM proxy solutions (Cloudflare WARP, NetSkope, etc.) that perform TLS inspection.
+
+## Supported Providers
+
+| Provider | Status | Platform |
+|----------|--------|----------|
+| Cloudflare WARP | ✅ Supported | macOS, Linux, Windows |
+| NetSkope | 🔜 Planned | - |
 
 ## Usage
 
@@ -59,30 +66,30 @@ python fumitm_windows.py --help
 
 ## FU MITM Rationale
 
-When your organization runs Cloudflare WARP Gateway with TLS inspection enabled, the gateway intercepts and records virtually all HTTPS traffic for policy enforcement and security auditing. WARP's Gateway achieves this introspection by presenting its own root certificate to your TLS clients -- essentially performing a sanctioned man-in-the-middle (MITM) attack on your TLS (aka SSL) connections.
+When your organization runs a zero-trust MITM proxy (like Cloudflare WARP Gateway or NetSkope) with TLS inspection enabled, the proxy intercepts and records virtually all HTTPS traffic for policy enforcement and security auditing. These tools achieve this introspection by presenting their own root certificate to your TLS clients -- essentially performing a sanctioned man-in-the-middle (MITM) attack on your TLS (aka SSL) connections.
 
-Typically, MacOS and Windows themselves will automatically trust WARP's certificate through system keychains. Most third-party development tools completely ignore these system certificates. Each tool maintains its own certificate bundle or looks for specific environment variables. This fragmentation creates endless annoying "certificate verify failed" errors across your toolchain whenever Warp Gateway's inspection is turned on.
+Typically, macOS and Windows themselves will automatically trust these certificates through system keychains. Most third-party development tools completely ignore these system certificates. Each tool maintains its own certificate bundle or looks for specific environment variables. This fragmentation creates endless annoying "certificate verify failed" errors across your toolchain whenever TLS inspection is turned on.
 
-One particularly annoying detail is that simply pointing tools to your organization's WARP Gateway certificate by itself rarely works. You often need to append the custom WARP CA to an existing bundle of public CAs, which quickly becomes a brittle process that needs repeating for each tool. 
+One particularly annoying detail is that simply pointing tools to your organization's MITM certificate by itself rarely works. You often need to append the custom CA to an existing bundle of public CAs, which quickly becomes a brittle process that needs repeating for each tool.
 
 FU MITM!
 
-## Don't Disable Warp
+## Don't Disable Your Proxy
 
-Whilst the quick temporary workaround might be to toggle Cloudflare Warp OFF, this is incredibly distressing to any nearby Information Security professionals who will one day need to forensically examine dodgy dependencies or MCPs that have slipped onto your laptop.
+Whilst the quick temporary workaround might be to toggle your MITM proxy OFF, this is incredibly distressing to any nearby Information Security professionals who will one day need to forensically examine dodgy dependencies or MCPs that have slipped onto your laptop.
 
-The act of toggling Warp off also seriously hints that you have no clue what you're doing, as understanding TLS certificate-based trust is a critical concept underpinning modern vibe'n.
+The act of toggling your proxy off also seriously hints that you have no clue what you're doing, as understanding TLS certificate-based trust is a critical concept underpinning modern vibe'n.
 
 ## Requirements
 
 ### General
-- Cloudflare WARP must be installed and connected
-- `warp-cli` command must be available
-- Python 3 (macOS, Windows/WSL)
+- Python 3 (macOS, Linux, Windows)
+- Your MITM proxy must be installed and connected
 
-### Windows-Specific
-- `warp-cli.exe` command must be available (typically installed with WARP)
-- Administrator privileges may be required for some fixes
+### Cloudflare WARP (current provider)
+- Cloudflare WARP client must be installed and connected
+- `warp-cli` command must be available (macOS/Linux) or `warp-cli.exe` (Windows)
+- Administrator privileges may be required for some fixes on Windows
 
 ## Contribute
 

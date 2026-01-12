@@ -2532,7 +2532,7 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
 
             if self.is_debug_mode():
                 self.print_debug(
-                    f"Fuwarp version: {VERSION_INFO['version']} (commit: {VERSION_INFO['commit']})"
+                    f"Fumitm version: {VERSION_INFO['version']} (commit: {VERSION_INFO['commit']})"
                 )
                 self.print_debug(
                     f"Branch: {VERSION_INFO['branch']} | Date: {VERSION_INFO['date']}"
