@@ -136,14 +136,48 @@ class TestToolSetup(FumitmTestCase):
             .with_subprocess_response(stdout=mock_data.PYTHON_VERSION)  # python version
             .with_subprocess_response(returncode=1)  # pip not found
             .build())
-        
+
         with mock_fumitm_environment(mock_config) as mocks:
             instance = self.create_fumitm_instance(mode='status')
             instance.setup_python_cert()
-            
+
             # Python should have been checked
             assert mocks['which'].called
             assert any(call('python3') in mocks['which'].call_args_list for call in [call])
+
+    def test_ssl_cert_file_set_when_requests_ca_bundle_already_healthy(self):
+        """Regression: SSL_CERT_FILE must be written even when REQUESTS_CA_BUNDLE is already correct.
+
+        Previously, setup_python_cert() returned early without setting SSL_CERT_FILE
+        when REQUESTS_CA_BUNDLE was already pointing at a healthy bundle.  Tools like
+        httpx and Python's built-in ssl module read SSL_CERT_FILE independently, so it
+        must always be written alongside REQUESTS_CA_BUNDLE.
+        """
+        bundle_path = f"{mock_data.HOME_DIR}/.python-ca-bundle.pem"
+        mock_config = (MockBuilder()
+            .with_certificate()
+            .with_tool('python3')
+            .with_env_var('REQUESTS_CA_BUNDLE', bundle_path)
+            .with_file(bundle_path, mock_data.MOCK_CERTIFICATE)
+            .build())
+
+        with mock_fumitm_environment(mock_config):
+            instance = self.create_fumitm_instance(mode='install')
+            with patch.object(instance, 'certificate_exists_in_file', return_value=True), \
+                 patch.object(instance, 'is_suspicious_full_bundle', return_value=(False, '')), \
+                 patch.object(instance, 'is_writable', return_value=True), \
+                 patch.object(instance, 'get_shell_config', return_value='~/.zshrc'), \
+                 patch.object(instance, 'add_to_shell_config') as mock_add:
+                instance.setup_python_cert()
+
+            ssl_cert_file_calls = [
+                c for c in mock_add.call_args_list if c[0][0] == 'SSL_CERT_FILE'
+            ]
+            assert ssl_cert_file_calls, (
+                "add_to_shell_config was never called with SSL_CERT_FILE; "
+                "it will be missing from the shell environment"
+            )
+            assert ssl_cert_file_calls[0][0][1] == bundle_path
 
 
 class TestJavaMultiInstallation(FumitmTestCase):
