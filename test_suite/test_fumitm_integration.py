@@ -166,6 +166,7 @@ class TestToolSetup(FumitmTestCase):
             with patch.object(instance, 'certificate_exists_in_file', return_value=True), \
                  patch.object(instance, 'is_suspicious_full_bundle', return_value=(False, '')), \
                  patch.object(instance, 'is_writable', return_value=True), \
+                 patch.object(instance, 'detect_shell', return_value='zsh'), \
                  patch.object(instance, 'get_shell_config', return_value='~/.zshrc'), \
                  patch.object(instance, 'add_to_shell_config') as mock_add:
                 instance.setup_python_cert()
