@@ -1407,16 +1407,94 @@ class FumitmPython:
         """
         return shell_type in ('zsh', 'bash', 'sh', 'dash', 'ksh')
 
+    def _find_shadowed_stub_files(self):
+        """Find startup files where a later export overrides the fumitm stub.
+
+        "Keep last" must be re-asserted, not established: a vendor agent update
+        can append a fresh block *below* fumitm's stub (observed with Aikido's
+        v2 blocks landing in ~/.zlogin), silently reverting managed vars for
+        every shell mode that reads that file. The regression is invisible until
+        a TLS call fails and typically presents as an auth error, so it must be
+        caught at status time, not debugging time.
+
+        Scans each stubbed startup file for `export VAR=` lines after the stub's
+        end marker (or anywhere, if the stub has been removed) where VAR is
+        managed in the env file and the value differs from the managed one.
+
+        Returns:
+            list of (path, var, shadow_value) tuples; empty when nothing is
+            shadowed or the env file does not exist yet.
+        """
+        shell_type = self.detect_shell()
+        if not self._uses_env_file(shell_type):
+            return []
+        managed = self._read_env_file()
+        if not managed:
+            return []
+
+        shadowed = []
+        for path in self.get_shell_configs(shell_type):
+            content = self._read_text_or_none(path)
+            if content is None:
+                continue
+            lines = content.splitlines()
+            end_idx = -1
+            for i, line in enumerate(lines):
+                if line.strip() == self._FUMITM_BLOCK_END:
+                    end_idx = i
+            # No stub: scan the whole file — with the env file present, any
+            # conflicting export here wins in the modes that read this file.
+            for line in lines[end_idx + 1:]:
+                stripped = line.strip()
+                if not stripped.startswith('export '):
+                    continue
+                try:
+                    name, rhs = stripped[len('export '):].split('=', 1)
+                except ValueError:
+                    continue
+                name = name.strip()
+                if name not in managed:
+                    continue
+                rhs = rhs.strip()
+                if (rhs.startswith('"') and rhs.endswith('"')) or \
+                        (rhs.startswith("'") and rhs.endswith("'")):
+                    rhs = rhs[1:-1]
+                if rhs != managed[name]:
+                    shadowed.append((path, name, rhs))
+        return shadowed
+
+    def _warn_shadowed_stubs(self, shadowed):
+        """Report stub-shadowing vendor exports with remediation."""
+        home = os.path.expanduser('~')
+        print()
+        self.print_warn("=" * 60)
+        self.print_warn("SHELL CONFIG SHADOWS FUMITM SETTINGS")
+        self.print_warn("=" * 60)
+        print()
+        self.print_warn("A newer export overrides fumitm's managed values (a vendor")
+        self.print_warn("agent update likely appended a block below fumitm's):")
+        print()
+        for path, var, value in shadowed:
+            self.print_error(f"  {path.replace(home, '~', 1)}: {var}={value}")
+        print()
+        self.print_info("Run ./fumitm.py --fix to move fumitm's block back to the end.")
+        self.print_warn("=" * 60)
+        print()
+
     def check_environment_sanity(self):
         """Check for broken CA-related environment variables pointing to non-existent files.
 
         This catches common issues where users have stale environment variables
         from previous WARP setups or removed shell config exports without unsetting
-        the variables in their current session.
+        the variables in their current session. Also detects startup files where
+        a vendor block has been appended below fumitm's stub, shadowing it.
 
         Returns:
-            bool: True if any broken variables were found, False otherwise
+            bool: True if any problems were found, False otherwise
         """
+        shadowed = self._find_shadowed_stub_files()
+        if shadowed:
+            self._warn_shadowed_stubs(shadowed)
         # Environment variables to check (simple file path variables)
         ca_env_vars = [
             'CURL_CA_BUNDLE',
@@ -1445,7 +1523,7 @@ class FumitmPython:
                     broken_vars.append(('JAVA_OPTS (trustStore)', truststore_path))
 
         if not broken_vars:
-            return False
+            return bool(shadowed)
 
         # Display prominent warning
         print()
@@ -2254,6 +2332,40 @@ class FumitmPython:
         prefix = ('\n'.join(other_lines) + '\n\n') if other_lines else ''
         new = prefix + self._render_stub() + '\n'
         return self._write_managed_file(shell_config, new, 'source stub')
+
+    def reassert_shell_stubs(self):
+        """Re-assert the source stub as the last block in every startup file.
+
+        "Keep last" is a property that decays: a vendor agent update can append
+        its own block below fumitm's stub (observed with Aikido's v2 blocks in
+        ~/.zlogin), reverting managed vars in every shell mode reading that
+        file. Tool setup functions only touch the stubs when they have a var to
+        write, so an all-already_ok run would otherwise leave the shadow in
+        place. This runs on every --fix regardless of tool selection.
+
+        Returns:
+            ToolResult when there was an env file to re-assert against,
+            None when the shell doesn't use the env file or none exists yet.
+        """
+        shell_type = self.detect_shell()
+        if not self._uses_env_file(shell_type):
+            return None
+        if not self._read_env_file():
+            return None
+
+        moved = []
+        for path in self.get_shell_configs(shell_type):
+            if self._ensure_stub(path):
+                moved.append(path)
+
+        if moved:
+            home = os.path.expanduser('~')
+            names = ', '.join(p.replace(home, '~', 1) for p in moved)
+            self.print_info(f"Re-asserted fumitm block as last in: {names}")
+            return ToolResult('shell-env', 'configured',
+                              f'Re-asserted managed block in {names}')
+        return ToolResult('shell-env', 'already_ok',
+                          'Managed block already last in all startup files')
 
     def _legacy_block_vars(self, shell_config):
         """Exports found in an inline managed block written by an older fumitm."""
@@ -6931,6 +7043,14 @@ https.get('{test_url}', {{headers: {{'User-Agent': 'Mozilla/5.0'}}}}, (res) => {
                         continue
                     result = self._run_setup(tool_key, setup_func)
                     results.append(result)
+
+                # Vendor agents may have appended blocks below fumitm's stubs
+                # since the last run; re-assert last position unconditionally.
+                # Skipped without user context: the env file lives in $HOME.
+                if not no_user:
+                    stub_result = self.reassert_shell_stubs()
+                    if stub_result is not None:
+                        results.append(stub_result)
 
                 print()
                 exit_code = self._print_summary(results)

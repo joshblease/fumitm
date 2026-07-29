@@ -4441,5 +4441,132 @@ class TestShellStartupFileCoverage(FumitmTestCase):
                 f'zsh {flags}: got {proc.stdout!r} (stderr: {proc.stderr!r})'
 
 
+class TestStubShadowing(FumitmTestCase):
+    """'Keep last' decays: a vendor agent update can append a block below
+    fumitm's stub (observed: Aikido v2 blocks landing in ~/.zlogin), reverting
+    managed vars for every shell mode reading that file. Status must detect it
+    and --fix must repair it, regardless of tool selection.
+    """
+
+    VENDOR_BLOCK = (
+        '# aikido-endpoint-curl-cert-config-v2-start\n'
+        'export SSL_CERT_FILE="/vendor/aikido-openssl.pem"\n'
+        'export CURL_CA_BUNDLE="/vendor/aikido-openssl.pem"\n'
+        '# aikido-endpoint-curl-cert-config-v2-end\n'
+    )
+
+    def _configured_instance(self, isolate_home):
+        inst = self.create_fumitm_instance(mode='install')
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            inst.add_to_shell_config('SSL_CERT_FILE', '/fumitm/bundle.pem')
+            inst.add_to_shell_config('CURL_CA_BUNDLE', '/fumitm/bundle.pem')
+        return inst
+
+    def test_vendor_block_below_stub_is_detected(self, isolate_home):
+        inst = self._configured_instance(isolate_home)
+        zlogin = isolate_home / '.zlogin'
+        zlogin.write_text(zlogin.read_text() + self.VENDOR_BLOCK)
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            shadowed = inst._find_shadowed_stub_files()
+
+        assert (str(zlogin), 'SSL_CERT_FILE', '/vendor/aikido-openssl.pem') in shadowed
+        assert (str(zlogin), 'CURL_CA_BUNDLE', '/vendor/aikido-openssl.pem') in shadowed
+
+    def test_sanity_check_reports_shadowing(self, isolate_home):
+        inst = self._configured_instance(isolate_home)
+        zlogin = isolate_home / '.zlogin'
+        zlogin.write_text(zlogin.read_text() + self.VENDOR_BLOCK)
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'), \
+                patch.object(inst, 'print_warn') as warn:
+            assert inst.check_environment_sanity() is True
+
+        warnings = ' '.join(c.args[0] for c in warn.call_args_list)
+        assert 'SHADOWS' in warnings
+
+    def test_same_value_after_stub_is_not_flagged(self, isolate_home):
+        inst = self._configured_instance(isolate_home)
+        zlogin = isolate_home / '.zlogin'
+        zlogin.write_text(
+            zlogin.read_text() + 'export SSL_CERT_FILE="/fumitm/bundle.pem"\n')
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            assert inst._find_shadowed_stub_files() == []
+
+    def test_vendor_export_in_zprofile_is_not_flagged(self, isolate_home):
+        # .zprofile is vendor territory and read before .zlogin, so its exports
+        # lose to the stub legitimately - it must not trigger the warning.
+        inst = self._configured_instance(isolate_home)
+        (isolate_home / '.zprofile').write_text(self.VENDOR_BLOCK)
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            assert inst._find_shadowed_stub_files() == []
+
+    def test_deleted_stub_with_vendor_export_is_flagged(self, isolate_home):
+        inst = self._configured_instance(isolate_home)
+        (isolate_home / '.zlogin').write_text(self.VENDOR_BLOCK)  # stub gone
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            shadowed = inst._find_shadowed_stub_files()
+        assert any(var == 'SSL_CERT_FILE' for _, var, _ in shadowed)
+
+    def test_no_env_file_means_no_shadow_check(self, isolate_home):
+        inst = self.create_fumitm_instance(mode='install')
+        (isolate_home / '.zlogin').write_text(self.VENDOR_BLOCK)
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            assert inst._find_shadowed_stub_files() == []
+            assert inst.reassert_shell_stubs() is None
+
+    def test_reassert_moves_stub_below_appended_vendor_block(self, isolate_home):
+        inst = self._configured_instance(isolate_home)
+        zlogin = isolate_home / '.zlogin'
+        zlogin.write_text(zlogin.read_text() + self.VENDOR_BLOCK)
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            result = inst.reassert_shell_stubs()
+
+        assert result.status == 'configured'
+        content = zlogin.read_text()
+        # Vendor block preserved verbatim, stub relocated below it.
+        assert self.VENDOR_BLOCK.strip() in content
+        assert content.rstrip().endswith(inst._FUMITM_BLOCK_END)
+        assert content.index(inst._FUMITM_BLOCK_BEGIN) \
+            > content.index('aikido-endpoint-curl-cert-config-v2-start')
+        # And the shadow is gone.
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            assert inst._find_shadowed_stub_files() == []
+            assert inst.reassert_shell_stubs().status == 'already_ok'
+
+    @pytest.mark.skipif(shutil.which('zsh') is None, reason='zsh not installed')
+    def test_real_zsh_vendor_append_then_reassert(self, isolate_home):
+        # End-to-end of the observed regression: Aikido's agent update appends
+        # below the stub in .zlogin, zsh -lc reverts to the vendor bundle, and
+        # a fumitm re-run must win it back.
+        inst = self._configured_instance(isolate_home)
+        zlogin = isolate_home / '.zlogin'
+        zlogin.write_text(zlogin.read_text() + self.VENDOR_BLOCK)
+
+        shell_env = {'HOME': str(isolate_home),
+                     'PATH': os.environ.get('PATH', '/usr/bin:/bin')}
+
+        def effective():
+            proc = subprocess.run(
+                ['zsh', '-lc', 'echo $SSL_CERT_FILE'],
+                capture_output=True, text=True, env=shell_env, timeout=30,
+                check=False)
+            lines = [l for l in proc.stdout.strip().splitlines() if l]
+            return lines[-1] if lines else ''
+
+        assert effective() == '/vendor/aikido-openssl.pem', \
+            'precondition: vendor append must shadow the stub'
+
+        with patch.object(inst, 'detect_shell', return_value='zsh'):
+            inst.reassert_shell_stubs()
+
+        assert effective() == '/fumitm/bundle.pem'
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
